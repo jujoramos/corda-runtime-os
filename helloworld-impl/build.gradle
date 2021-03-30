@@ -10,8 +10,6 @@ description 'Hello World Implementation'
 dependencies {
     implementation project(":helloworld")
     implementation "org.junit.jupiter:junit-jupiter-api:$junit5Version"
-
-//    testImplementation "org.osgi:org.osgi.test.junit5:$osgiTestJunit5Version"
 }
 
 tasks.named('jar', Jar) {
