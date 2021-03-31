@@ -13,7 +13,7 @@ import java.nio.file.Path
 import java.util.*
 
 class OSGiFrameworkWrap(
-    val uuid: UUID,             // Used to distinguish different objects in parallel tests.
+    val uuid: UUID, // Used to distinguish different objects in parallel tests.
     private val framework: Framework,
 ) : AutoCloseable {
 
@@ -41,12 +41,12 @@ class OSGiFrameworkWrap(
          */
         private const val JAR_EXTENSION = ".jar"
 
-        fun isStartable(status: Int): Boolean {
+        private fun isStartable(status: Int): Boolean {
             val state = status and 0xff
             return state > Bundle.UNINSTALLED && state < Bundle.STOPPING
         }
 
-        fun isStoppable(status: Int): Boolean {
+        private fun isStoppable(status: Int): Boolean {
             val state = status and 0xff
             return state > Bundle.STARTING && state <= Bundle.ACTIVE
         }

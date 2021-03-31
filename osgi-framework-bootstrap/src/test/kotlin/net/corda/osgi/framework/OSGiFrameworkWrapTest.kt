@@ -25,7 +25,10 @@ import kotlin.test.assertTrue
 internal class OSGiFrameworkWrapTest {
 
     companion object {
+
         private const val TEMP_DIR = "/foo"
+
+        private val frameworkFactoryFQN = OSGiFrameworkFactoryMock::class.java.canonicalName
     }
 
 
@@ -41,16 +44,13 @@ internal class OSGiFrameworkWrapTest {
 
     @Test
     fun getFrameworkFrom() {
-        val framework = OSGiFrameworkWrap.getFrameworkFrom(
-            OSGiFrameworkFactoryMock::class.java.canonicalName,
-            frameworkStorageDir
-        )
+        val framework = OSGiFrameworkWrap.getFrameworkFrom(frameworkFactoryFQN, frameworkStorageDir)
         assertTrue { framework is OSGiFrameworkMock }
     }
 
     @Test
     fun getFrameworkFrom_ClassNotFoundException() {
-        //assertThrows<ClassNotFoundException> { OSGiFrameworkWrap.getFrameworkFrom("no_class", frameworkStorageDir) }
+        assertThrows<ClassNotFoundException> { OSGiFrameworkWrap.getFrameworkFrom("no_class", frameworkStorageDir) }
     }
 
     @Test
@@ -62,10 +62,7 @@ internal class OSGiFrameworkWrapTest {
         val uuid = UUID.randomUUID()
         OSGiFrameworkWrap(
             uuid,
-            OSGiFrameworkWrap.getFrameworkFrom(
-                OSGiFrameworkFactoryMock::class.java.canonicalName,
-                frameworkStorageDir
-            )
+            OSGiFrameworkWrap.getFrameworkFrom(frameworkFactoryFQN, frameworkStorageDir)
         ).use { osgiFrameworkWrap ->
             assertEquals(uuid, osgiFrameworkWrap.uuid)
         }
@@ -88,14 +85,8 @@ internal class OSGiFrameworkWrapTest {
             "iota", "kappa", "lambda", "mi", "ni", "xi", "omicron", "pi",
             "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi"
         )
-        val framework = OSGiFrameworkWrap.getFrameworkFrom(
-            OSGiFrameworkFactoryMock::class.java.canonicalName,
-            frameworkStorageDir
-        )
-        OSGiFrameworkWrap(
-            UUID.randomUUID(),
-            framework
-        ).use { osgiFrameworkWrap ->
+        val framework = OSGiFrameworkWrap.getFrameworkFrom(frameworkFactoryFQN, frameworkStorageDir)
+        OSGiFrameworkWrap(UUID.randomUUID(), framework).use { osgiFrameworkWrap ->
             osgiFrameworkWrap.setArguments(args)
             val bundleContext = framework.bundleContext
             val serviceReference = bundleContext.getServiceReference(ArgsService::class.java)
@@ -107,7 +98,7 @@ internal class OSGiFrameworkWrapTest {
     @Test
     fun start() {
         val startupStateAtomic = AtomicInteger(0)
-        val framework = OSGiFrameworkMock(mutableMapOf(), 100L)
+        val framework = OSGiFrameworkWrap.getFrameworkFrom(frameworkFactoryFQN, frameworkStorageDir)
         framework.init(FrameworkListener { frameworkEvent ->
             assertTrue(startupStateAtomic.get() < frameworkEvent.bundle.state)
             assertTrue(startupStateAtomic.compareAndSet(startupStateAtomic.get(), frameworkEvent.bundle.state))
