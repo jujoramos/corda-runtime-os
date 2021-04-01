@@ -1,11 +1,13 @@
 package net.corda.osgi.framework
 
+import net.corda.osgi.framework.startlevel.OSGiFrameworkStartLevel
 import org.apache.sling.testing.mock.osgi.MockBundle
 import org.apache.sling.testing.mock.osgi.MockOsgi
 import org.osgi.framework.*
 import org.osgi.framework.launch.Framework
 import java.io.File
 import java.io.InputStream
+import java.lang.IllegalArgumentException
 import java.lang.IllegalStateException
 import java.net.URL
 import java.security.cert.X509Certificate
@@ -13,7 +15,7 @@ import java.util.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.jvm.Throws
+import kotlin.Throws
 
 
 class OSGiFrameworkMock(
@@ -38,11 +40,25 @@ class OSGiFrameworkMock(
 
     private val listenersAtomic = AtomicReference(listOf<FrameworkListener>())
 
+    private val serviceReferencesAtomic = AtomicReference(listOf<ServiceReference<Any>>())
+
+    private val frameworkStartLevel = OSGiFrameworkStartLevel(this, OSGiFrameworkStartLevel.ON)
+
     private val stateAtomic = AtomicInteger(Bundle.INSTALLED)
+
+    private val transitionLatchAtomic = AtomicReference(CountDownLatch(NO_WAIT))
 
     private val versionAtomic = AtomicReference(version)
 
-    private val transitionLatchAtomic = AtomicReference(CountDownLatch(NO_WAIT))
+    private val waitForStopLatchAtomic = AtomicReference(CountDownLatch(NO_WAIT))
+
+    init {
+        if (configurationMap.contains(Constants.FRAMEWORK_BEGINNING_STARTLEVEL)) {
+            frameworkStartLevel.setStartLevel(
+                Integer.parseInt(configurationMap[Constants.FRAMEWORK_BEGINNING_STARTLEVEL])
+            )
+        }
+    }
 
     private fun resolve() {
         synchronized(transitionLatchAtomic) {
@@ -86,6 +102,17 @@ class OSGiFrameworkMock(
         }
     }
 
+    private fun stopping() {
+        synchronized(transitionLatchAtomic) {
+            transitionLatchAtomic.set(CountDownLatch(WAIT))
+            CompletableFuture.runAsync {
+                setState(Bundle.STOPPING)
+                Thread.sleep(transitionDelay)
+                transitionLatchAtomic.get().countDown()
+            }
+        }
+    }
+
     // Framework
 
     override fun compareTo(other: Bundle): Int {
@@ -105,6 +132,9 @@ class OSGiFrameworkMock(
         InterruptedException::class
     )
     override fun start() {
+
+        waitForStopLatchAtomic.set(CountDownLatch(WAIT))
+
         // 0,9.
         // If this bundle's state is UNINSTALLED then an IllegalStateException is thrown.
         if (state != Bundle.UNINSTALLED) {
@@ -160,24 +190,39 @@ class OSGiFrameworkMock(
         throw IllegalStateException()
     }
 
+
     override fun start(ignored: Int) {
         start()
     }
 
 
-
-
-
     override fun stop() {
-//        if (isStoppable(state)) {
-//            CompletableFuture.runAsync {
-//                Thread.sleep(transitionDelay)
-//                setState(Bundle.STOPPING)
-//            }.thenRunAsync {
-//                Thread.sleep(transitionDelay)
-//                setState(Bundle.UNINSTALLED)
-//            }
-//        }
+        CompletableFuture.runAsync {
+            // 1.
+            // This Framework's state is set to Bundle.STOPPING.
+            stopping()
+            // 2.
+            // All installed bundles must be stopped without changing each bundle's persistent autostart setting.
+            // The start level of this Framework is moved to start level zero (0),
+            // as described in the Start Level Specification.
+            // Any exceptions that occur during bundle stopping must be wrapped in a BundleException
+            // and then published as a framework event of type FrameworkEvent.ERROR
+            frameworkStartLevel.setStartLevel(OSGiFrameworkStartLevel.OFF, *listenersAtomic.get().toTypedArray())
+            // 3. Unregister all services registered by this Framework.
+            serviceReferencesAtomic.set(listOf())
+            // 4.
+            // Event handling is disabled.
+            listenersAtomic.set(listOf())
+            // 5.
+            // This Framework's state is set to Bundle.RESOLVED.
+            setState(Bundle.RESOLVED)
+            // 6.
+            // All resources held by this Framework are released.
+            // This includes threads, bundle class loaders, open files, etc.
+            // 7.
+            // Notify all threads that are waiting at waitForStop that the stop operation has completed.
+            waitForStopLatchAtomic.get().countDown()
+        }
     }
 
     override fun stop(ignored: Int) {
@@ -277,14 +322,31 @@ class OSGiFrameworkMock(
     }
 
 
-
     override fun init() {
     }
 
     override fun init(vararg listeners: FrameworkListener) {
         listenersAtomic.set(listeners.toList())
     }
+
+    @Throws(
+        IllegalArgumentException::class
+    )
     override fun waitForStop(timeout: Long): FrameworkEvent {
+        when (state) {
+            Bundle.STARTING, Bundle.ACTIVE, Bundle.STOPPING -> {
+                try {
+                    if (!waitForStopLatchAtomic.get().await(timeout, TimeUnit.MILLISECONDS)) {
+                        return FrameworkEvent(
+                            FrameworkEvent.WAIT_TIMEDOUT, this, TimeoutException("$timeout ms time-out")
+                        )
+                    }
+                } catch (e: InterruptedException) {
+                    return FrameworkEvent(FrameworkEvent.ERROR, this, e)
+                }
+            }
+        }
         return FrameworkEvent(FrameworkEvent.STOPPED, this, null)
     }
+
 }
