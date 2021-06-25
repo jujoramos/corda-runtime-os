@@ -106,11 +106,35 @@ The plugin and the bootable JAR exposes the [SLF4J](http://www.slf4j.org/) and
 [Apache Log4j 2](https://logging.apache.org/log4j/2.x/) packages to the bundles through the OSGi framework, using *Log4j
 2* to implement logging.
 
+In the `build.gradle` of the module declare
+
+```groovy
+dependencies {
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
+}
+```
+
+or, if the module uses `net.corda.lifecycle.LifeCycle`, this includes **Log4j2**, hence declare
+
+```groovy
+implementation project(":libs:lifecycle")
+```
+
 In *Kotlin* code declare the `logger` as usual.
 
 ```kotlin
-val logger = LoggerFactory.getLogger(MyClass::class.java)
+companion object {
+    val logger = LoggerFactory.getLogger(MyClass::class.java)
+}
 ```
+
+or
+
+```kotlin
+val logger = contextLogger()
+```
+
+if the module depends on `net.corda:corda-base`.
 
 The application logs in a single flow according the time of generations all events, either logged by OSGi bundles, Felix
 or the code bootstrapping and controlling Felix.
