@@ -39,7 +39,6 @@ class TestSandboxApplication : Application {
          * from the `:applications:examples:test-cpk` module.
          */
         private const val PATH = "applications/examples/test-cpk/build/libs"
-//        private const val PATH = "/home/ldebiasi/IdeaProjects/corda5/testing/cordapps/fungiblestate-sample/fungiblestate-contracts/build/libs"
 
     } //~ companion object
 
