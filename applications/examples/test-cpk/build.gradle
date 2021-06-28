@@ -13,6 +13,5 @@ cordapp {
 }
 
 dependencies {
-    cordaProvided "org.apache.logging.log4j:log4j-api:$log4jVersion"
     cordaProvided "org.jetbrains.kotlin:kotlin-osgi-bundle:$kotlinVersion"
 }
