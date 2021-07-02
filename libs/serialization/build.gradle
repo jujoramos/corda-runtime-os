@@ -1,0 +1,11 @@
+plugins {
+    id 'corda.publish'
+    id 'corda.common-library'
+}
+
+description "Serialization"
+
+dependencies {
+    implementation "net.corda:corda-base:$cordaVersion"
+    implementation "net.corda:corda-serialization:$cordaVersion"
+}
