@@ -180,7 +180,7 @@ def cordaAssembleSystemPackagesExtraTask = tasks.register("cordaAssembleSystemPa
 
 def appJarBaseName = "corda-" + project.name
 
-task appJar(type: Jar) {
+def appJarTask = tasks.register("appJar", Jar) {
     dependsOn cordaAssembleSystemPackagesExtraTask
     archivesBaseName = appJarBaseName
     destinationDirectory = new File(project.buildDir, "bin")

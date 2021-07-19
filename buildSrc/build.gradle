@@ -1,6 +1,46 @@
+
+buildscript {
+    def cordaArtifactoryUsername = System.getenv('CORDA_ARTIFACTORY_USERNAME')
+    def cordaArtifactoryPassword = System.getenv('CORDA_ARTIFACTORY_PASSWORD')
+    def constants = new Properties()
+    file("$rootDir/../gradle.properties").withInputStream { InputStream input -> constants.load(input) }
+    def artifactoryContextUrl = constants.getProperty('artifactoryContextUrl')
+    def cordaGradlePluginsVersion = constants.getProperty('cordaGradlePluginsVersion')
+    repositories {
+        maven {
+            url "$artifactoryContextUrl/corda-dev"
+            content {
+                includeGroupByRegex 'net\\.corda\\.plugins(\\..*)?'
+            }
+        }
+        maven {
+            url "$artifactoryContextUrl/corda-releases"
+            content {
+                includeGroupByRegex 'net\\.corda\\.plugins(\\..*)?'
+            }
+        }
+        maven {
+            credentials {
+                username "$cordaArtifactoryUsername"
+                password "$cordaArtifactoryPassword"
+            }
+            url "$artifactoryContextUrl/corda-os-maven"
+            content {
+                includeGroupByRegex 'net\\.corda\\.plugins(\\..*)?'
+            }
+        }
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath "net.corda.plugins:quasar-utils:$cordaGradlePluginsVersion"
+        classpath "net.corda.plugins:flask:$cordaGradlePluginsVersion"
+    }
+}
+
 plugins {
     id 'groovy-gradle-plugin'
 }
+
 
 // We can't get the values directly from `gradle.properties` from here for some gradle-y reason.
 // So we'll load it into our own object to grab what we need.
@@ -20,3 +60,5 @@ repositories {
     }
     mavenCentral()
 }
+
+
