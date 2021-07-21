@@ -19,6 +19,7 @@ pluginManagement {
             }
         }
         gradlePluginPortal()
+        mavenLocal()
     }
     plugins {
         id 'biz.aQute.bnd.builder' version bndVersion
@@ -36,6 +37,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
+        mavenLocal()
     }
 }
 

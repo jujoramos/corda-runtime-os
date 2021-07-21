@@ -1,13 +1,13 @@
 
 plugins {
-    id 'java'
-    id 'corda.publish'
-    id 'biz.aQute.bnd.builder'
+//    id 'java'
+//    id 'corda.publish'
+//    id 'biz.aQute.bnd.builder'
     id 'net.corda.plugins.flask'
     id 'net.corda.plugins.quasar-utils'
 }
 
-project.tasks.register("flaskAppJar", net.corda.gradle.flask.FlaskJarTask) {
+project.tasks.register("appFlask", net.corda.gradle.flask.FlaskJarTask) {
     archiveBaseName = "corda-flask-" + project.name
     destinationDirectory = new File(project.buildDir, "bin")
     Provider<RegularFile> quasarAgent = layout.file(provider { configurations.quasarAgent.singleFile })
