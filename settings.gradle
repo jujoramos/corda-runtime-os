@@ -116,6 +116,7 @@ include 'libs:virtual-node:virtual-node-cache'
 include 'libs:virtual-node:virtual-node-cache-impl'
 include 'libs:http-rpc:http-rpc'
 include 'osgi-framework-api'
+include 'osgi-framework-application'
 include 'osgi-framework-bootstrap'
 include 'testing:apps:test-app'
 
