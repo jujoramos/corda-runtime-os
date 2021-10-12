@@ -1,9 +1,12 @@
 @file:JvmName("MemberInfoUtils")
+
 package net.corda.membership.impl
 
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.osgi.service.component.annotations.Component
+import org.osgi.service.component.annotations.Reference
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.time.Instant
@@ -13,7 +16,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 
-interface KeyEncodingService : PublicKeyDecoder {
+interface KeyEncodingService : CustomStringConverter {
+    fun decodePublicKey(encodedKey: String): PublicKey
     fun decodePublicKey(encodedKey: ByteArray): PublicKey
     fun encodeAsByteArray(publicKey: PublicKey): ByteArray
     fun encodeAsString(publicKey: PublicKey): String
@@ -21,15 +25,70 @@ interface KeyEncodingService : PublicKeyDecoder {
     fun toSupportedPublicKey(key: PublicKey): PublicKey
 }
 
+class KeyEncodingServiceImpl: KeyEncodingService {
+    override fun decodePublicKey(encodedKey: String): PublicKey {
+        val key = mock<PublicKey>()
+        whenever(
+            key.algorithm
+        ).thenReturn(encodedKey)
+        whenever(
+            key.encoded
+        ).thenReturn(encodedKey.toByteArray())
+        return key
+    }
+
+    override fun decodePublicKey(encodedKey: ByteArray): PublicKey {
+        TODO("Not yet implemented")
+    }
+
+    override fun encodeAsByteArray(publicKey: PublicKey): ByteArray {
+        TODO("Not yet implemented")
+    }
+
+    override fun encodeAsString(publicKey: PublicKey): String {
+        TODO("Not yet implemented")
+    }
+
+    override fun toSupportedPrivateKey(key: PrivateKey): PrivateKey {
+        TODO("Not yet implemented")
+    }
+
+    override fun toSupportedPublicKey(key: PublicKey): PublicKey {
+        TODO("Not yet implemented")
+    }
+
+    override val type: Class<*> = PublicKey::class.java
+
+    override fun convert(context: CustomConversionContext): Any? {
+        val value = context.value()
+        if(value.isNullOrBlank()) {
+            return null
+        }
+        return decodePublicKey(value)
+    }
+}
 /////////////////////////////////////////// API - base
 
-interface PublicKeyDecoder {
-    fun decodePublicKey(encodedKey: String): PublicKey
+class CustomConversionContext(
+    store: KeyValueStore,
+    key: String,
+    val converter: StringValueConverter,
+) : ConversionContext(store, key)
+
+interface CustomStringConverter {
+    val type: Class<*>
+    fun convert(context: CustomConversionContext): Any?
+}
+
+open class ConversionContext(
+    val store: KeyValueStore,
+    val key: String
+) {
+    fun value(): String? = store[key]
 }
 
 interface StringValueConverter {
-    val publicKeyDecoder: PublicKeyDecoder
-    fun <T> convert(strValue: String?, clazz: Class<out T>): T?
+    fun <T> convert(context: ConversionContext, clazz: Class<out T>): T?
 }
 
 interface KeyValueStore {
@@ -41,11 +100,11 @@ interface KeyValueStore {
     fun <T> parseList(itemKeyPrefix: String, clazz: Class<out T>): List<T>
     fun <T> parseList(
         itemKeyPrefix: String, clazz: Class<out T>,
-        itemFactory: (converter: StringValueConverter, keys: List<Pair<String, String>>) -> T
+        itemFactory: (store: KeyValueStore, converter: StringValueConverter, keys: List<String>) -> T
     ): List<T>
     fun <T> parsePrimitiveList(
         itemKeyPrefix: String, clazz: Class<out T>,
-        itemFactory: (converter: StringValueConverter, value: String) -> T
+        itemFactory: (store: KeyValueStore, converter: StringValueConverter, key: String) -> T
     ): List<T>
 }
 
@@ -63,19 +122,22 @@ inline fun <reified T> KeyValueStore.parseList(itemKeyPrefix: String): List<T> {
 
 inline fun <reified T> KeyValueStore.parseList(
     itemKeyPrefix: String,
-    noinline itemFactory: (converter: StringValueConverter, keys: List<Pair<String, String>>) -> T
+    noinline itemFactory: (store: KeyValueStore, converter: StringValueConverter, keys: List<String>) -> T
 ): List<T> {
     return parseList(itemKeyPrefix, T::class.java, itemFactory)
 }
 
 inline fun <reified T> KeyValueStore.parsePrimitiveList(
     itemKeyPrefix: String,
-    noinline itemFactory: (converter: StringValueConverter, value: String) -> T
+    noinline itemFactory: (store: KeyValueStore, converter: StringValueConverter, key: String) -> T
 ): List<T> {
     return parsePrimitiveList(itemKeyPrefix, T::class.java, itemFactory)
 }
 
 /////////////////////////////////////////// API - membership
+
+interface MemberContext: KeyValueStore
+interface MGMContext: KeyValueStore
 
 interface MemberInfo {
     val memberCtx: KeyValueStore
@@ -88,27 +150,42 @@ interface MemberInfo {
 
 ///////////////////////////////////////////////// IMPL - base
 
+@Component(service = [StringValueConverter::class])
 open class StringValueConverterImpl(
-    override val publicKeyDecoder: PublicKeyDecoder
+    @Reference(service = CustomStringConverter::class)
+    val customConverters: List<CustomStringConverter>
 ) : StringValueConverter {
+    private val converters = customConverters.associateBy { it.type }
+
     @Suppress("UNCHECKED_CAST")
-    override fun <T> convert(strValue: String?, clazz: Class<out T>): T? {
-        return if(strValue == null) {
-            return null
-        } else {
-            when (clazz.kotlin) {
-                Int::class -> strValue.toInt() as T
-                Long::class -> strValue.toLong() as T
-                Short::class -> strValue.toShort() as T
-                Float::class -> strValue.toFloat() as T
-                Double::class -> strValue.toDouble() as T
-                String::class -> strValue as T
-                Instant::class -> Instant.parse(strValue) as T
-                PublicKey::class -> publicKeyDecoder.decodePublicKey(strValue) as T
-                else -> throw IllegalStateException("Unknown '${clazz.name}' Type")
+    override fun <T> convert(context: ConversionContext, clazz: Class<out T>): T? {
+            val converter = converters[clazz]
+            return if(converter != null) {
+                converter.convert(
+                    CustomConversionContext(
+                        context.store,
+                        context.key,
+                        this,
+                    )
+                ) as T
+            } else {
+                val value = context.value()
+                return if (value == null) {
+                    null
+                } else {
+                    when (clazz.kotlin) {
+                        Int::class -> value.toInt() as T
+                        Long::class -> value.toLong() as T
+                        Short::class -> value.toShort() as T
+                        Float::class -> value.toFloat() as T
+                        Double::class -> value.toDouble() as T
+                        String::class -> value as T
+                        Instant::class -> Instant.parse(value) as T
+                        else -> throw IllegalStateException("Unknown '${clazz.name}' Type")
+                    }
+                }
             }
         }
-    }
 }
 
 open class KeyValueStoreImpl(
@@ -130,11 +207,11 @@ open class KeyValueStoreImpl(
     @Suppress("UNCHECKED_CAST")
     override fun <T> parse(key: String, clazz: Class<out T>): T {
         val tmp = materialised[key]
-        if(tmp != null) {
+        if (tmp != null) {
             return tmp.value as? T
                 ?: throw IllegalStateException("The value for the key '$key' is null.")
         }
-        val value = converter.convert(get(key), clazz)
+        val value = converter.convert(ConversionContext(this, key), clazz)
             ?: throw IllegalStateException("The '$key' was not found or the value is null.")
         materialised[key] = MaterialisedValue(value)
         return value
@@ -143,17 +220,17 @@ open class KeyValueStoreImpl(
     @Suppress("UNCHECKED_CAST")
     override fun <T> parseOrNull(key: String, clazz: Class<out T>): T? {
         val tmp = materialised[key]
-        if(tmp != null) {
+        if (tmp != null) {
             return tmp.value as T?
         }
-        val value = converter.convert(get(key), clazz)
+        val value = converter.convert(ConversionContext(this, key), clazz)
         materialised[key] = MaterialisedValue(value)
         return value
     }
 
     override fun <T> parseList(itemKeyPrefix: String, clazz: Class<out T>): List<T> {
-        return parseList(itemKeyPrefix, clazz) { c, l ->
-            defaultItemFactory(clazz, c, l)
+        return parseList(itemKeyPrefix, clazz) { _, _, keys ->
+            defaultItemFactory(clazz, keys)
         }
     }
 
@@ -161,37 +238,37 @@ open class KeyValueStoreImpl(
     override fun <T> parseList(
         itemKeyPrefix: String,
         clazz: Class<out T>,
-        itemFactory: (converter: StringValueConverter, keys: List<Pair<String, String>>) -> T
+        itemFactory: (store: KeyValueStore, converter: StringValueConverter, keys: List<String>) -> T
     ): List<T> {
         val searchPrefix = normaliseSearchKeyPrefix(itemKeyPrefix)
         val tmp = materialised[searchPrefix]
-        if(tmp != null) {
+        if (tmp != null) {
             return tmp.value as? List<T>
                 ?: throw IllegalStateException("The value for the key prefix '$searchPrefix' is null.")
         }
         val parsed = mutableListOf<T>()
-        val currentGroup = mutableListOf<Pair<String, String>>()
+        val currentGroupKeys = mutableListOf<String>()
         var lastIndex: String? = null
         entries.forEach {
             if (it.key.startsWith(searchPrefix)) {
                 val itemIndex = getIndex(it.key)
                 if (itemIndex != lastIndex) {
                     lastIndex = itemIndex
-                    if (currentGroup.isNotEmpty()) {
-                        parsed.add(itemFactory(converter, currentGroup))
-                        currentGroup.clear()
+                    if (currentGroupKeys.isNotEmpty()) {
+                        parsed.add(itemFactory(this, converter, currentGroupKeys))
+                        currentGroupKeys.clear()
                     }
                 }
-                if(it.value != null) {
-                    currentGroup.add(Pair(it.key, it.value!!))
+                if (it.value != null) {
+                    currentGroupKeys.add(it.key)
                 }
             } else if (lastIndex != null) {
                 return@forEach
             }
         }
-        if (currentGroup.isNotEmpty()) {
-            parsed.add(itemFactory(converter, currentGroup))
-            currentGroup.clear()
+        if (currentGroupKeys.isNotEmpty()) {
+            parsed.add(itemFactory(this, converter, currentGroupKeys))
+            currentGroupKeys.clear()
         }
         materialised[searchPrefix] = MaterialisedValue(parsed)
         return parsed
@@ -200,35 +277,36 @@ open class KeyValueStoreImpl(
     override fun <T> parsePrimitiveList(
         itemKeyPrefix: String,
         clazz: Class<out T>,
-        itemFactory: (converter: StringValueConverter, value: String) -> T
+        itemFactory: (store: KeyValueStore, converter: StringValueConverter, key: String) -> T
     ): List<T> {
-        return parseList(itemKeyPrefix, clazz) { c, l ->
-            if(l.size != 1) {
+        return parseList(itemKeyPrefix, clazz) { store, converter, keys ->
+            if (keys.size != 1) {
                 throw IllegalStateException("Expected single item only.")
             }
-            itemFactory(c, l[0].second)
+            itemFactory(store, converter, keys[0])
         }
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> defaultItemFactory(
         clazz: Class<out T>,
-        c: StringValueConverter,
-        l: List<Pair<String, String>>
+        keys: List<String>
     ): T {
-        val ctor2 = clazz.constructors.firstOrNull { ctor ->
-            ctor.parameterCount == 2 &&
-                    ctor.parameterTypes[0] == StringValueConverter::class.java &&
-                    ctor.parameterTypes[1] == List::class.java
+        val ctor3 = clazz.constructors.firstOrNull { ctor ->
+            ctor.parameterCount == 3 &&
+                    ctor.parameterTypes[0] == KeyValueStore::class.java &&
+                    ctor.parameterTypes[1] == StringValueConverter::class.java &&
+                    ctor.parameterTypes[2] == List::class.java
         }
-        return if (ctor2 != null) {
-            ctor2.newInstance(c, l) as T
+        return if (ctor3 != null) {
+            ctor3.newInstance(this, converter, keys) as T
         } else {
-            val ctor1 = clazz.constructors.first { ctor ->
-                ctor.parameterCount == 1 &&
-                        ctor.parameterTypes[0] == List::class.java
+            val ctor2 = clazz.constructors.first { ctor ->
+                ctor.parameterCount == 2 &&
+                        ctor.parameterTypes[0] == KeyValueStore::class.java &&
+                        ctor.parameterTypes[1] == List::class.java
             }
-            ctor1.newInstance(l) as T
+            ctor2.newInstance(this, keys) as T
         }
     }
 
@@ -252,9 +330,19 @@ open class KeyValueStoreImpl(
 
 ///////////////////////////////////////////////// IMPL - membership
 
+class MemberContextImpl(
+    map: SortedMap<String, String?>,
+    converter: StringValueConverter
+) : KeyValueStoreImpl(map, converter), MemberContext
+
+class MGMContextImpl(
+    map: SortedMap<String, String?>,
+    converter: StringValueConverter
+) : KeyValueStoreImpl(map, converter), MGMContext
+
 class MemberInfoImpl(
-    override val memberCtx: KeyValueStore,
-    override val mgmCtx: KeyValueStore
+    override val memberCtx: MemberContext,
+    override val mgmCtx: MGMContext
 ) : MemberInfo {
     override val groupId: String
         get() = mgmCtx.parse("GROUP_ID")
@@ -263,8 +351,8 @@ class MemberInfoImpl(
     override val key: PublicKey
         get() = memberCtx.parse("KEY")
     override val allKeys: List<PublicKey>
-        get() = memberCtx.parsePrimitiveList("ALL_KEYS") { c, v ->
-            c.publicKeyDecoder.decodePublicKey(v)
+        get() = memberCtx.parsePrimitiveList("ALL_KEYS") { store, converter, key ->
+            converter.convert(ConversionContext(store, key), PublicKey::class.java)!!
         }
 }
 
@@ -273,27 +361,73 @@ val MemberInfo.timestamp: Instant get() = mgmCtx.parse("TIMESTAMP")
 val MemberInfo.nullableCustomValue: Long? get() = memberCtx.parseOrNull("NULLABLE_CUSTOM_KEY")
 val MemberInfo.optionalCustomValue: Long? get() = memberCtx.parseOrNull("OPTIONAL_CUSTOM_KEY")
 
+///////////////////////////////////////////////// API - application
+
+class CordaX500Name(
+    val commonName: String?,
+    val organisationUnit: String?,
+    val organisation: String,
+    val locality: String,
+    val state: String?,
+    val country: String
+) {
+    companion object {
+        fun parse(name: String): CordaX500Name = CordaX500Name(
+            name,
+            "",
+            "",
+            "",
+            "",
+            ""
+        )
+    }
+}
+
+interface Party {
+    val name: CordaX500Name
+    val owningKey: PublicKey
+}
+
+class PartyStringConverter : CustomStringConverter {
+    override val type: Class<*> = Party::class.java
+
+    override fun convert(context: CustomConversionContext): Any? {
+        return when(context.store::class) {
+            MemberContext::class -> {
+                if(context.key == "PARTY") {
+                    // not entirely convenient as requires duplication for getting value by keys
+                    PartyImpl(
+                        CordaX500Name.parse(context.store.parse("NAME")),
+                        context.store.parse("KEY")
+                    )
+                } else {
+                    throw IllegalArgumentException("Unknown key '${context.key}'")
+                }
+            }
+            else -> throw IllegalArgumentException("Unknown class '${context.store::class.java.name}'")
+        }
+    }
+}
+
+val MemberInfo.party: Party get() = memberCtx.parse("PARTY")
+
+///////////////////////////////////////////////// IMPL - application
+
+class PartyImpl(
+    override val name: CordaX500Name,
+    override val owningKey: PublicKey
+) : Party
+
 //////
 class Tests {
     @Test
     fun example() {
-        val keyEncoding = mock<KeyEncodingService>()
-        val stringValueConverter = StringValueConverterImpl(keyEncoding)
-        val key5 = mock<PublicKey>()
-        val key6 = mock<PublicKey>()
-        val key7 = mock<PublicKey>()
+        val stringValueConverter = StringValueConverterImpl(listOf(
+            KeyEncodingServiceImpl()
+        ))
         val now = Instant.now()
-        whenever(
-            keyEncoding.decodePublicKey("12345")
-        ).thenReturn(key5)
-        whenever(
-            keyEncoding.decodePublicKey("12346")
-        ).thenReturn(key6)
-        whenever(
-            keyEncoding.decodePublicKey("12347")
-        ).thenReturn(key7)
         val memberInfo = MemberInfoImpl(
-            memberCtx = KeyValueStoreImpl(
+            memberCtx = MemberContextImpl(
                 sortedMapOf(
                     "NAME" to "Me",
                     "KEY" to "12345",
@@ -304,7 +438,7 @@ class Tests {
                 ),
                 stringValueConverter
             ),
-            mgmCtx = KeyValueStoreImpl(
+            mgmCtx = MGMContextImpl(
                 sortedMapOf(
                     "GROUP_ID" to "First",
                     "TIMESTAMP" to now.toString()
@@ -322,17 +456,17 @@ class Tests {
         assertEquals("First", memberInfo.groupId)
         assertEquals(42, memberInfo.customValue)
         assertEquals(42, memberInfo.customValue)
-        assertSame(key5, memberInfo.key)
-        assertSame(key5, memberInfo.key)
+        assertSame("12345", memberInfo.key.algorithm)
+        assertSame("12345", memberInfo.key.algorithm)
         assertEquals(now, memberInfo.timestamp)
         assertEquals(now, memberInfo.timestamp)
         var allKeys = memberInfo.allKeys
         assertEquals(2, allKeys.size)
-        assertSame(key6, allKeys[0])
-        assertSame(key7, allKeys[1])
+        assertSame("12346", allKeys[0].algorithm)
+        assertSame("12347", allKeys[1].algorithm)
         allKeys = memberInfo.allKeys
         assertEquals(2, allKeys.size)
-        assertSame(key6, allKeys[0])
-        assertSame(key7, allKeys[1])
+        assertSame("12346", allKeys[0].algorithm)
+        assertSame("12347", allKeys[1].algorithm)
     }
 }
