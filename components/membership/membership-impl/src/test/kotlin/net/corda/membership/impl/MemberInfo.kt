@@ -27,6 +27,7 @@ interface KeyEncodingService : CustomStringConverter {
     fun toSupportedPublicKey(key: PublicKey): PublicKey
 }
 
+@Component(service = [KeyEncodingService::class, CustomStringConverter::class])
 class KeyEncodingServiceImpl: KeyEncodingService {
     override fun decodePublicKey(encodedKey: String): PublicKey {
         val key = mock<PublicKey>()
@@ -394,6 +395,7 @@ interface Party {
     val owningKey: PublicKey
 }
 
+@Component(service = [CustomStringConverter::class])
 class PartyStringConverter : CustomStringConverter {
     override val type: Class<*> = Party::class.java
 
