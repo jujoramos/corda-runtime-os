@@ -7,6 +7,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
+import org.osgi.service.component.annotations.ReferenceCardinality
+import org.osgi.service.component.annotations.ReferencePolicyOption
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.time.Instant
@@ -140,8 +142,8 @@ interface MemberContext: KeyValueStore
 interface MGMContext: KeyValueStore
 
 interface MemberInfo {
-    val memberCtx: KeyValueStore
-    val mgmCtx: KeyValueStore
+    val memberCtx: MemberContext
+    val mgmCtx: MGMContext
     val groupId: String
     val name: String
     val key: PublicKey
@@ -152,7 +154,11 @@ interface MemberInfo {
 
 @Component(service = [StringValueConverter::class])
 open class StringValueConverterImpl(
-    @Reference(service = CustomStringConverter::class)
+    @Reference(
+        service = CustomStringConverter::class,
+        cardinality = ReferenceCardinality.OPTIONAL,
+        policyOption = ReferencePolicyOption.GREEDY
+    )
     val customConverters: List<CustomStringConverter>
 ) : StringValueConverter {
     private val converters = customConverters.associateBy { it.type }
@@ -394,14 +400,16 @@ class PartyStringConverter : CustomStringConverter {
     override fun convert(context: CustomConversionContext): Any? {
         return when(context.store::class) {
             MemberContext::class -> {
-                if(context.key == "PARTY") {
-                    // not entirely convenient as requires duplication for getting value by keys
-                    PartyImpl(
+                when(context.key) {
+                    "PARTY" ->  PartyImpl(
                         CordaX500Name.parse(context.store.parse("NAME")),
                         context.store.parse("KEY")
                     )
-                } else {
-                    throw IllegalArgumentException("Unknown key '${context.key}'")
+                    "NOTARY_SERVICE_PARTY" -> PartyImpl(
+                        CordaX500Name.parse(context.store.parse("NAME_NOTARY")),
+                        context.store.parse("KEY_NOTARY")
+                    )
+                    else -> throw IllegalArgumentException("Unknown key '${context.key}'")
                 }
             }
             else -> throw IllegalArgumentException("Unknown class '${context.store::class.java.name}'")
