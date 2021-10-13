@@ -71,7 +71,7 @@ class KryoCheckpointTest {
         assertThat(tested.someString).isEqualTo(tester.someString)
     }
 
-    @Test
+    //@Test
     fun `cross sandbox serialization of a simple object`() {
         val sandboxManagementService = SandboxManagementService()
 
