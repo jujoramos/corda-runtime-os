@@ -10,10 +10,8 @@ import javax.persistence.EntityManagerFactory
  *
  * @param config Config to be used by the subscription.
  * @param instanceId The instance ID to use for subscribing to Kafka.
- * @param entityManagerFactory The factory for creating entity managers for interacting with the cluster database.
  */
 internal class StartProcessingEvent(
     val config: SmartConfig,
-    val instanceId: Int,
-    val entityManagerFactory: EntityManagerFactory
+    val instanceId: Int
 ) : LifecycleEvent

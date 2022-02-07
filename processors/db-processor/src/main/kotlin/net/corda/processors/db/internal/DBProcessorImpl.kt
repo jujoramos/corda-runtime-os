@@ -123,6 +123,8 @@ class DBProcessorImpl @Activate constructor(
                 if (event.registration == dbManagerRegistrationHandler) {
                     log.info("DB Connection Manager has been initialised")
 
+                    println("JJJ here")
+
                     // TODO - remove this when cluster bootstrapping is implemented
                     tempDbInitProcess(bootstrapConfig!!.factory)
 
@@ -158,6 +160,35 @@ class DBProcessorImpl @Activate constructor(
     }
 
     private fun tempDbInitProcess(factory: SmartConfigFactory) {
+        // Creating cluster DB configurations
+        if(null == dbConnectionsRepository.get(CordaDb.CordaCluster.persistenceUnitName, DbPrivilege.DDL)) {
+            val ddlRbacUser = "cluster_ddl"
+            val ddlRbacPassword = UUID.randomUUID().toString()
+            dbAdmin.createDbAndUser(
+                CordaDb.CordaCluster.persistenceUnitName,
+                DbSchema.CONFIG,
+                ddlRbacUser,
+                ddlRbacPassword,
+                CONFIG_JDBC_URL_DEFAULT,
+                DbPrivilege.DDL,
+                factory
+            )
+        }
+
+        if(null == dbConnectionsRepository.get(CordaDb.CordaCluster.persistenceUnitName, DbPrivilege.DML)) {
+            val dmlRbacUser = "cluster_dml"
+            val dmlRbacPassword = UUID.randomUUID().toString()
+            dbAdmin.createDbAndUser(
+                CordaDb.CordaCluster.persistenceUnitName,
+                DbSchema.CONFIG,
+                dmlRbacUser,
+                dmlRbacPassword,
+                CONFIG_JDBC_URL_DEFAULT,
+                DbPrivilege.DML,
+                factory
+            )
+        }
+
         log.info("Running Cluster DB Migration")
         migrateDatabase(dbConnectionsRepository.clusterDataSource, listOf(
             "net/corda/db/schema/config/db.changelog-master.xml"
