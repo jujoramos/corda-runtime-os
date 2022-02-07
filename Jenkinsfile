@@ -1,4 +1,4 @@
-@Library('corda-shared-build-pipeline-steps@5.0') _
+@Library('corda-shared-build-pipeline-steps@ronanb/NOTICK/security-tooling') _
 
 cordaPipeline(
     nexusAppId: 'flow-worker-5.0',
