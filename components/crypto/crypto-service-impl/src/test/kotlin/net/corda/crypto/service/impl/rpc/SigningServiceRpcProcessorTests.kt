@@ -1,10 +1,10 @@
 package net.corda.crypto.service.impl.rpc
 
 import net.corda.crypto.CryptoConsts
-import net.corda.crypto.service.impl.generateKeyPair
-import net.corda.crypto.service.impl.signing.CryptoServicesTestFactory
 import net.corda.crypto.service.SigningService
 import net.corda.crypto.service.SigningServiceFactory
+import net.corda.crypto.service.impl.generateKeyPair
+import net.corda.crypto.service.impl.signing.CryptoServicesTestFactory
 import net.corda.data.KeyValuePair
 import net.corda.data.KeyValuePairList
 import net.corda.data.crypto.wire.CryptoNoContentValue
