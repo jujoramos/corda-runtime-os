@@ -22,12 +22,9 @@ import org.apache.logging.log4j.Level
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.bouncycastle.asn1.x500.X500Name
-import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Timeout
 import java.net.URI
 import java.security.KeyStore
 import java.security.SecureRandom
@@ -61,6 +58,7 @@ class HttpTest : TestBase() {
     private val serverAddress = URI.create("http://alice.net:10000")
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `simple client POST request`() {
         val listener = object : ListenerWithServer() {
@@ -95,6 +93,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `multiple clients multiple requests`() {
         val requestNo = 10
@@ -155,6 +154,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `large payload`() {
         val hugePayload = (1..0xA00_000)
@@ -196,6 +196,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `tls handshake succeeds - revocation checking disabled C5`() {
         val listener = object : ListenerWithServer() {
@@ -230,6 +231,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `tls handshake succeeds - revocation checking disabled C4`() {
         val listener = object : ListenerWithServer() {
@@ -264,6 +266,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `tls handshake fails - server identity check fails C4`() {
         MitmServer(serverAddress.host, serverAddress.port, c4sslKeyStore).use { server ->
@@ -298,6 +301,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `tls handshake fails - server identity check fails C5`() {
         MitmServer(serverAddress.host, serverAddress.port, chipKeyStore).use { server ->
@@ -328,6 +332,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `tls handshake fails - requested SNI is not recognized`() {
 
@@ -371,6 +376,7 @@ class HttpTest : TestBase() {
     }
 
     @Test
+    @Disabled
     @Timeout(30)
     fun `tls handshake fails - server presents revoked certificate`() {
 

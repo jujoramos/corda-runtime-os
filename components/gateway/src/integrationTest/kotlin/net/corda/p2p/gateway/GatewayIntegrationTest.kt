@@ -53,13 +53,9 @@ import net.corda.v5.base.util.contextLogger
 import net.corda.v5.base.util.seconds
 import org.assertj.core.api.Assertions.assertThat
 import org.bouncycastle.jce.PrincipalUtil
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Timeout
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.fail
+import org.junit.jupiter.api.*
+import org.slf4j.LoggerFactory
+import java.io.File
 import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -703,6 +699,7 @@ class GatewayIntegrationTest : TestBase() {
         @Test
         @Timeout(120)
         fun `key store can change dynamically`() {
+            val qqqLogger = LoggerFactory.getLogger("QQQ")
             val aliceAddress = URI.create("http://www.alice.net:${getOpenPort()}")
             val bobAddress = URI.create("http://www.bob.net:${getOpenPort()}")
             val server = Node("server")
@@ -714,9 +711,11 @@ class GatewayIntegrationTest : TestBase() {
                     aliceSslConfig
                 ),
             )
+            qqqLogger.info("QQQ 1")
             server.publish(
                 Record(SESSION_OUT_PARTITIONS, sessionId, SessionPartitions(listOf(1)))
             )
+            qqqLogger.info("QQQ 2")
             Gateway(
                 configPublisher.readerService,
                 server.subscriptionFactory,
@@ -725,29 +724,36 @@ class GatewayIntegrationTest : TestBase() {
                 nodeConfig,
                 instanceId.incrementAndGet(),
             ).use { gateway ->
+                qqqLogger.info("QQQ 3")
                 gateway.startAndWaitForStarted()
+                qqqLogger.info("QQQ 4")
                 val firstCertificatesAuthority = StubCertificatesAuthority("password", KeyAlgorithm.RSA)
                 // Client should fail without trust store certificates
                 assertThrows<RuntimeException> {
                     testClientWith(aliceAddress, firstCertificatesAuthority.trustStoreKeyStore)
                 }
+                qqqLogger.info("QQQ 5")
 
                 // Publish the trust store
                 server.publish(
                     Record(GATEWAY_TLS_TRUSTSTORES, GROUP_ID, firstCertificatesAuthority.gatewayTrustStore),
                 )
+                qqqLogger.info("QQQ 6")
 
                 // Client should fail without any keys
                 assertThrows<RuntimeException> {
                     testClientWith(aliceAddress, firstCertificatesAuthority.trustStoreKeyStore)
                 }
+                qqqLogger.info("QQQ 7")
 
                 // Publish the first key pair
                 val keyStore = firstCertificatesAuthority.createKeyStore(aliceAddress.host)
                 publishKeyStoreCertificatesAndKeys(server.publisher, keyStore)
+                qqqLogger.info("QQQ 8")
 
                 // Client should now pass
                 testClientWith(aliceAddress, firstCertificatesAuthority.trustStoreKeyStore)
+                qqqLogger.info("QQQ 9")
 
                 // Delete the first pair
                 server.publish(
@@ -757,6 +763,7 @@ class GatewayIntegrationTest : TestBase() {
                         null
                     )
                 )
+                qqqLogger.info("QQQ 10")
 
                 // Client should fail again...
                 eventually {
@@ -764,12 +771,15 @@ class GatewayIntegrationTest : TestBase() {
                         testClientWith(aliceAddress, firstCertificatesAuthority.trustStoreKeyStore)
                     }
                 }
+                qqqLogger.info("QQQ 11")
 
                 // publish the same pair again
                 publishKeyStoreCertificatesAndKeys(server.publisher, keyStore)
 
                 // Client should now pass
+                qqqLogger.info("QQQ 12")
                 testClientWith(aliceAddress, firstCertificatesAuthority.trustStoreKeyStore)
+                qqqLogger.info("QQQ 13")
 
                 // Delete the certificates
                 val subject = PrincipalUtil.getSubjectX509Principal(
@@ -782,15 +792,19 @@ class GatewayIntegrationTest : TestBase() {
                         null
                     )
                 )
+                qqqLogger.info("QQQ 14")
                 eventually {
                     assertThrows<RuntimeException> {
                         testClientWith(aliceAddress, firstCertificatesAuthority.trustStoreKeyStore)
                     }
                 }
+                qqqLogger.info("QQQ 15")
 
                 // publish it again
                 publishKeyStoreCertificatesAndKeys(server.publisher, keyStore)
+                qqqLogger.info("QQQ 16")
                 testClientWith(aliceAddress, firstCertificatesAuthority.trustStoreKeyStore)
+                qqqLogger.info("QQQ 17")
 
                 // Change the host
                 configPublisher.publishConfig(GatewayConfiguration(bobAddress.host, bobAddress.port, aliceSslConfig))
@@ -798,7 +812,9 @@ class GatewayIntegrationTest : TestBase() {
                 publishKeyStoreCertificatesAndKeys(server.publisher, bobKeyStore)
 
                 // Client should pass with new host
+                qqqLogger.info("QQQ 18")
                 testClientWith(bobAddress, firstCertificatesAuthority.trustStoreKeyStore)
+                qqqLogger.info("QQQ 19")
 
                 // new trust store...
                 val secondCertificatesAuthority = StubCertificatesAuthority("password", KeyAlgorithm.ECDSA)
@@ -809,7 +825,9 @@ class GatewayIntegrationTest : TestBase() {
                 // replace the first pair
                 val newKeyStore = secondCertificatesAuthority.createKeyStore(bobAddress.host)
                 publishKeyStoreCertificatesAndKeys(server.publisher, newKeyStore)
+                qqqLogger.info("QQQ 20")
                 testClientWith(bobAddress, secondCertificatesAuthority.trustStoreKeyStore)
+                qqqLogger.info("QQQ 21")
 
                 // verify that the old trust store will fail
                 eventually {
@@ -817,6 +835,7 @@ class GatewayIntegrationTest : TestBase() {
                         testClientWith(bobAddress, firstCertificatesAuthority.trustStoreKeyStore)
                     }
                 }
+                qqqLogger.info("QQQ 22")
 
                 // new trust store and pair...
                 val thirdCertificatesAuthority = StubCertificatesAuthority("password", KeyAlgorithm.ECDSA)
@@ -827,8 +846,11 @@ class GatewayIntegrationTest : TestBase() {
                 // publish new pair with new alias
                 val newerKeyStore = thirdCertificatesAuthority.createKeyStore(bobAddress.host)
                 publishKeyStoreCertificatesAndKeys(server.publisher, newerKeyStore)
+                qqqLogger.info("QQQ 24")
                 testClientWith(bobAddress, thirdCertificatesAuthority.trustStoreKeyStore)
+                qqqLogger.info("QQQ 25")
             }
+            qqqLogger.info("QQQ 26")
         }
     }
 
@@ -852,3 +874,4 @@ class GatewayIntegrationTest : TestBase() {
         }
     }
 }
+

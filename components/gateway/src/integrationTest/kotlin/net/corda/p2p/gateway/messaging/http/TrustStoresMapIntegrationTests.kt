@@ -13,6 +13,7 @@ import net.corda.schema.Schemas
 import net.corda.test.util.eventually
 import org.assertj.core.api.Assertions.assertThat
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import java.io.StringWriter
@@ -30,6 +31,7 @@ class TrustStoresMapIntegrationTests : TestBase() {
     private val expectedCertificatePem = truststoreCertificatePem
 
     @Test
+    @Disabled
     fun `TrustStoresMap creates correct certificate`() {
         val map = TrustStoresMap(
             lifecycleCoordinatorFactory,
