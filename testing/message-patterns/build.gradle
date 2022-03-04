@@ -75,7 +75,7 @@ def resolve = tasks.register('resolve', Resolve) {
     System.setProperty("bnd.home.dir", "$rootDir/bnd/")
 }
 
-tasks.register('kafkaIntegrationTest', TestOSGi) {
+/*tasks.register('kafkaIntegrationTest', TestOSGi) {
     description = "Runs Kafka OSGi integration tests."
     group = "verification"
     javaLauncher = javaToolchains.launcherFor {
@@ -85,7 +85,7 @@ tasks.register('kafkaIntegrationTest', TestOSGi) {
     bundles = files(sourceSets.kafkaIntegrationTest.runtimeClasspath, configurations.archives.artifacts.files)
     bndrun = resolve.flatMap { it.outputBndrun }
 }
-
+*/
 def kafkaTestingBundle = tasks.register('kafkaTestingBundle', Bundle) {
     archiveClassifier = 'tests'
     from sourceSets.kafkaIntegrationTest.output

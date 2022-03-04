@@ -40,7 +40,7 @@ dependencies {
     cpis project(path: ':components:install:test-resources:workflow-cpk', configuration: 'cordaCPB')
 }
 
-tasks.named('testOSGi') {
+/*tasks.named('testOSGi') {
     inputs.files configurations.cpis
 
     ext {
@@ -49,3 +49,4 @@ tasks.named('testOSGi') {
         }
     }
 }
+*/

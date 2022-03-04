@@ -81,10 +81,6 @@ tasks.named('check') {
     dependsOn testOSGi
 }
 
-tasks.named('integrationTest') {
-    dependsOn testOSGi
-    enabled = false
-}
 
 artifacts {
     archives testingBundle

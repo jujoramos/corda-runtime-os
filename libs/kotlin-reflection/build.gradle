@@ -82,11 +82,11 @@ def testOSGi = tasks.register('testOSGi', TestOSGi) {
     bndrun = resolve.flatMap { it.outputBndrun }
 }
 
-tasks.named('integrationTest') {
+/*tasks.named('integrationTest') {
     dependsOn testOSGi
     enabled = false
 }
-
+*/
 artifacts {
     bundle jar
 }
