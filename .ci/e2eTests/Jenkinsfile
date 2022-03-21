@@ -134,6 +134,7 @@ pipeline {
         }        
         success {
             // Only delete namespace if we're successful (though it'll get pruned in 3 hours anyway)
+            echo "Test"
         }
     }
 }
