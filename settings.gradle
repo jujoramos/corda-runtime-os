@@ -1,6 +1,16 @@
 pluginManagement {
     repositories {
         mavenLocal()
+                    maven {
+                url = "${artifactoryContextUrl}/engineering-tools-maven-unstable"
+                                authentication {
+                    basic(BasicAuthentication)
+                }
+                credentials {
+                    username = settings.ext.find('cordaArtifactoryUsername') ?: System.getenv('CORDA_ARTIFACTORY_USERNAME')
+                    password = settings.ext.find('cordaArtifactoryPassword') ?: System.getenv('CORDA_ARTIFACTORY_PASSWORD')
+                }
+                    } 
         def cordaUseCache = System.getenv("CORDA_USE_CACHE")
         if (cordaUseCache != null) {
             maven {
