@@ -5,6 +5,8 @@ import aQute.bnd.gradle.Bundle
 import aQute.bnd.gradle.Resolve
 import aQute.bnd.gradle.TestOSGi
 import static org.gradle.jvm.toolchain.JavaLanguageVersion.of
+import static com.gradle.enterprise.gradleplugin.test.JUnitXmlDialect.*
+import com.gradle.enterprise.gradleplugin.test.ImportJUnitXmlReports
 
 plugins {
     id 'biz.aQute.bnd.builder'
@@ -82,6 +84,12 @@ def testOSGi = tasks.register('testOSGi', TestOSGi) {
     bndrun = resolve.flatMap { it.outputBndrun }
 }
 
+tasks.register("importOSGiJUnitXml", ImportJUnitXmlReports) {
+    reports.from(fileTree("${project.buildDir}/$testResultsDir/integrationTest").matching {
+        include '**/TEST-*.xml'
+    })
+}
+
 tasks.named('check') {
     dependsOn testOSGi
 }
@@ -90,6 +98,8 @@ tasks.named('integrationTest') {
     dependsOn testOSGi
     enabled = false
 }
+
+tasks.integrationTest.finalizedBy('importOSGiJUnitXml')
 
 artifacts {
     archives testingBundle

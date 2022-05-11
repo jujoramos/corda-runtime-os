@@ -18,6 +18,7 @@ dependencies {
 
     implementation "net.corda.plugins:quasar-utils:$cordaGradlePluginsVersion"
     implementation "com.google.cloud.tools:jib-core:$jibCoreVersion"
+        implementation 'com.gradle:gradle-enterprise-gradle-plugin:3.8.1'
 
     if (System.getenv('CORDA_ARTIFACTORY_USERNAME') != null || project.hasProperty('cordaArtifactoryUsername')) {
         implementation "com.r3.internal.gradle.plugins:publish:$internalPublishVersion"
