@@ -1,4 +1,4 @@
-@Library('corda-shared-build-pipeline-steps@5.0') _
+@Library('corda-shared-build-pipeline-steps@NOTICK/ronanb/test-adding-osgi-test-data') _
 
 cordaPipeline(
     nexusAppId: 'flow-worker-5.0',
