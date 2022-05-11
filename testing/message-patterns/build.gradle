@@ -3,6 +3,8 @@ import aQute.bnd.gradle.Resolve
 import aQute.bnd.gradle.TestOSGi
 
 import static org.gradle.jvm.toolchain.JavaLanguageVersion.of
+import static com.gradle.enterprise.gradleplugin.test.JUnitXmlDialect.*
+import com.gradle.enterprise.gradleplugin.test.ImportJUnitXmlReports
 
 plugins {
     id 'corda.common-library'
@@ -137,6 +139,15 @@ tasks.named('integrationTest') {
     dependsOn dbIntegrationTest
     enabled = false
 }
+
+tasks.register("importOSGiJUnitXml", ImportJUnitXmlReports) {
+    dialect = GENERIC
+    reports.from(fileTree("$testResultsDir/dbIntegrationTest").matching {
+        include '**/TEST-*.xml'
+    })
+}
+
+tasks.integrationTest.finalizedBy('importOSGiJUnitXml')
 
 artifacts {
     archives testingBundle
