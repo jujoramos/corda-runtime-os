@@ -85,6 +85,7 @@ def testOSGi = tasks.register('testOSGi', TestOSGi) {
 }
 
 tasks.register("importOSGiJUnitXml", ImportJUnitXmlReports) {
+    dialect = GENERIC
     reports.from(fileTree("${project.buildDir}/$testResultsDir/integrationTest").matching {
         include '**/TEST-*.xml'
     })
