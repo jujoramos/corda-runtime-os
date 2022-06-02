@@ -51,12 +51,14 @@ pluginManagement {
         id 'com.github.ben-manes.versions' version dependencyCheckVersion
         id "org.gradle.test-retry" version gradleTestRetryPluginVersion
         id "com.jfrog.artifactory" version artifactoryPluginVersion
+        id "com.gradle.enterprise.test-distribution" version gradleTestDistributionPluginVersion        
     }
 }
 
 plugins {
     id 'com.gradle.common-custom-user-data-gradle-plugin'
     id 'com.gradle.enterprise'
+    id "com.gradle.enterprise.test-distribution"
 }
 
 rootProject.name = 'corda-runtime-os'

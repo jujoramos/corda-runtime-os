@@ -85,6 +85,17 @@ allprojects {
                 maxFailures = 10
             }
         }
+
+        if(name.equals("test"){
+            distribution {
+                enabled = true
+                remoteExecutionPreferred = true
+                waitTimeout = Duration.ofMinutes(2)
+                maxLocalExecutors = 1
+                maxRemoteExecutors = 10
+                requirements = ["jdk=11","os=linux"]
+            }
+        }
     }
 
     pluginManager.withPlugin('biz.aQute.bnd.builder') {
