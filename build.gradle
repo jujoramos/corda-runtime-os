@@ -86,7 +86,7 @@ allprojects {
             }
         }
 
-        if(name.equals("test"){
+        if(name.equals("test")){
             distribution {
                 enabled = true
                 remoteExecutionPreferred = true
