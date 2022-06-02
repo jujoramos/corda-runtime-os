@@ -97,7 +97,7 @@ allprojects {
     longRunningTestModules.forEach{ -> longTests
 
 
-        if (project.name.contains(longTests)) {
+        if (project.name.toString().contains(longTests)) {
                 println "TRUE ****************"
 
             if(name.equals("test")){
