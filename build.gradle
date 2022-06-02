@@ -32,7 +32,7 @@ wrapper {
 
 def javaVersion = VERSION_11
 
-allprojects { subProject -> 
+allprojects {  
 
     pluginManager.withPlugin('java') {
         java {
@@ -97,22 +97,24 @@ allprojects { subProject ->
     longRunningTestModules.forEach{ -> longTests
 
 
-      if (subProject.name.contains(longTests)) {
-            println "TRUE ****************"
+        if (project.name.contains(longTests)) {
+                println "TRUE ****************"
 
-        if(name.equals("test")){
-            distribution {
-                enabled = true
-                remoteExecutionPreferred = true
-                waitTimeout = Duration.ofMinutes(2)
-                maxLocalExecutors = 1
-                maxRemoteExecutors = 10
-                requirements = ["jdk=11","os=linux"]
+            if(name.equals("test")){
+                distribution {
+                    enabled = true
+                    remoteExecutionPreferred = true
+                    waitTimeout = Duration.ofMinutes(2)
+                    maxLocalExecutors = 1
+                    maxRemoteExecutors = 10
+                    requirements = ["jdk=11","os=linux"]
+                }
             }
         }
-     }
 
+        }
     }
+    
 
   
 
