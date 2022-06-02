@@ -32,7 +32,7 @@ wrapper {
 
 def javaVersion = VERSION_11
 
-allprojects {
+allprojects { subProject -> 
 
     pluginManager.withPlugin('java') {
         java {
@@ -86,6 +86,20 @@ allprojects {
             }
         }
 
+
+//         def valid = pointAddress.findAll { a ->
+//     validPointTypes.any { a.contains(it) }
+// }
+
+
+    def longRunningTestModules = ['crypto', 'gateway', 'link-manager', 'flow-service','p2p']
+
+    longRunningTestModules.forEach{ -> longTests
+
+
+      if (subProject.name.contains(longTests)) {
+            println "TRUE ****************"
+
         if(name.equals("test")){
             distribution {
                 enabled = true
@@ -96,7 +110,11 @@ allprojects {
                 requirements = ["jdk=11","os=linux"]
             }
         }
+     }
+
     }
+
+  
 
     pluginManager.withPlugin('biz.aQute.bnd.builder') {
         tasks.withType(aQute.bnd.gradle.Bndrun).configureEach {
