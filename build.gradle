@@ -91,13 +91,12 @@ allprojects {
 //     validPointTypes.any { a.contains(it) }
 // }
 
+    String[] longRunningTestModules   = ['crypto', 'gateway', 'link-manager', 'flow-service','p2p']
 
-    def longRunningTestModules = ['crypto', 'gateway', 'link-manager', 'flow-service','p2p']
-
-    longRunningTestModules.forEach{ -> longTests
+    longRunningTestModules.each { 
 
 
-        if (project.name.toString().contains(longTests)) {
+        if (project.name.toString().contains(it)) {
                 println "TRUE ****************"
 
             if(name.equals("test")){
