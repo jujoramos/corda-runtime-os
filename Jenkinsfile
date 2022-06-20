@@ -1,4 +1,4 @@
-@Library('corda-shared-build-pipeline-steps@5.0') _
+@Library('corda-shared-build-pipeline-steps@ronanb/test-cache-suffix-removal') _
 
 cordaPipeline(
     nexusAppId: 'flow-worker-5.0',
