@@ -1,0 +1,8 @@
+@Library('corda-shared-build-pipeline-steps@INFRA-1794-Refactor-Packer-templates-from-JSON-to-HCL') _
+
+windowsCompatibility(
+    runIntegrationTests: true,
+    createPostgresDb: true,
+    dailyBuildCron: 'H 03 * * *',
+    windowsVersion: '2022',
+    )
