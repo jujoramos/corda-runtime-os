@@ -147,6 +147,15 @@ fun CpiPersistence.persistCpiToDatabase(
 }
 
 /**
+ * Checks that a CPI has a group policy.
+ *
+ * @throws ValidationException if there is no group policy json.
+ */
+private fun Cpi.validateHasGroupPolicy() {
+    if (this.metadata.groupPolicy.isNullOrEmpty()) throw ValidationException("CPI is missing a group policy file")
+}
+
+/**
  * Get groupId from group policy JSON on the [Cpi] object.
  *
  * @param getGroupIdFromJson lambda that takes a json string and returns the `groupId`
@@ -157,7 +166,7 @@ fun CpiPersistence.persistCpiToDatabase(
  */
 @Suppress("ThrowsCount")
 fun Cpi.validateAndGetGroupId(getGroupIdFromJson: (String) -> String): String {
-    if (this.metadata.groupPolicy.isNullOrEmpty()) throw ValidationException("CPI is missing a group policy file")
+    validateHasGroupPolicy()
     val groupId = try {
         getGroupIdFromJson(this.metadata.groupPolicy!!)
     } catch (e: CordaRuntimeException) {
@@ -165,6 +174,18 @@ fun Cpi.validateAndGetGroupId(getGroupIdFromJson: (String) -> String): String {
     }
     if (groupId.isBlank()) throw ValidationException("CPI group policy file needs a groupId")
     return groupId
+}
+
+/**
+ * Get fileFormatVersion from group policy JSON on the [Cpi] object.
+ *
+ * @throws ValidationException if there is no group policy json.
+ * @throws CordaRuntimeException if there is an error parsing the group policy json.
+ * @return the group policy file format version
+ */
+fun Cpi.validateAndGetGroupPolicyFileVersion(): Int {
+    validateHasGroupPolicy()
+    return GroupPolicyParser.getFileFormatVersion(this.metadata.groupPolicy!!)
 }
 
 /**

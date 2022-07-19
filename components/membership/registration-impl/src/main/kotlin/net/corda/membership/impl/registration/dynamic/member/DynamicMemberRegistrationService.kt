@@ -35,6 +35,8 @@ import net.corda.membership.lib.MemberInfoExtension.Companion.SOFTWARE_VERSION
 import net.corda.membership.lib.MemberInfoExtension.Companion.URL_KEY
 import net.corda.membership.lib.MemberInfoExtension.Companion.holdingIdentity
 import net.corda.membership.lib.MemberInfoExtension.Companion.isMgm
+import net.corda.membership.lib.schema.validation.MembershipSchemaValidationException
+import net.corda.membership.lib.schema.validation.MembershipSchemaValidatorFactory
 import net.corda.membership.lib.toWire
 import net.corda.membership.read.MembershipGroupReaderProvider
 import net.corda.membership.registration.MemberRegistrationService
@@ -50,7 +52,9 @@ import net.corda.p2p.app.UnauthenticatedMessageHeader
 import net.corda.schema.Schemas
 import net.corda.schema.configuration.ConfigKeys
 import net.corda.schema.configuration.ConfigKeys.MESSAGING_CONFIG
+import net.corda.schema.membership.MembershipSchema.RegistrationContextSchema
 import net.corda.v5.base.util.contextLogger
+import net.corda.v5.base.versioning.Version
 import net.corda.v5.cipher.suite.KeyEncodingService
 import net.corda.v5.cipher.suite.schemes.EDDSA_ED25519_TEMPLATE
 import net.corda.v5.cipher.suite.schemes.GOST3410_GOST3411_TEMPLATE
@@ -88,6 +92,8 @@ class DynamicMemberRegistrationService @Activate constructor(
     cordaAvroSerializationFactory: CordaAvroSerializationFactory,
     @Reference(service = MembershipGroupReaderProvider::class)
     private val membershipGroupReaderProvider: MembershipGroupReaderProvider,
+    @Reference(service = MembershipSchemaValidatorFactory::class)
+    val membershipSchemaValidatorFactory: MembershipSchemaValidatorFactory,
 ) : MemberRegistrationService {
     /**
      * Private interface used for implementation swapping in response to lifecycle events.
@@ -195,6 +201,28 @@ class DynamicMemberRegistrationService @Activate constructor(
             context: Map<String, String>,
         ): MembershipRequestRegistrationResult {
             try {
+                membershipSchemaValidatorFactory
+                    .createValidator()
+                    .validateRegistrationContext(
+                        RegistrationContextSchema.DynamicMember,
+                        Version(1, 0),
+                        context
+                    )
+            } catch (ex: MembershipSchemaValidationException) {
+                return MembershipRequestRegistrationResult(
+                    MembershipRequestRegistrationOutcome.NOT_SUBMITTED,
+                    "Registration failed. The registration context is invalid. " + ex.getErrorSummary()
+                )
+            }
+            try {
+                validateContext(context)
+            } catch (ex: IllegalArgumentException) {
+                return MembershipRequestRegistrationResult(
+                    MembershipRequestRegistrationOutcome.NOT_SUBMITTED,
+                    "Registration failed. The registration context is invalid: " + ex.message
+                )
+            }
+            try {
                 val registrationId = UUID.randomUUID().toString()
                 val memberContext = buildMemberContext(context, registrationId, member)
                 val serializedMemberContext = keyValuePairListSerializer.serialize(memberContext)
@@ -252,7 +280,6 @@ class DynamicMemberRegistrationService @Activate constructor(
             registrationId: String,
             member: HoldingIdentity
         ): KeyValuePairList {
-            validateContext(context)
             return KeyValuePairList(
                 context.filterNot { it.key.startsWith(LEDGER_KEYS) || it.key.startsWith(PARTY_SESSION_KEY) }
                     .toWire().items
