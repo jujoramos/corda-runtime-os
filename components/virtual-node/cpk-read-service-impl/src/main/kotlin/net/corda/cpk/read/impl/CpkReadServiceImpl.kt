@@ -1,11 +1,15 @@
 package net.corda.cpk.read.impl
 
+import net.corda.chunking.db.ChunkDbWriter
+import net.corda.chunking.db.ChunkDbWriterFactory
 import java.util.concurrent.ConcurrentHashMap
 import net.corda.configuration.read.ConfigChangedEvent
 import net.corda.configuration.read.ConfigurationReadService
+import net.corda.cpiinfo.write.CpiInfoWriteService
 import net.corda.cpk.read.CpkReadService
 import net.corda.cpk.read.impl.services.CpkChunksKafkaReader
 import net.corda.cpk.read.impl.services.persistence.CpkChunksFileManagerImpl
+import net.corda.db.connection.manager.DbConnectionManager
 import net.corda.libs.configuration.SmartConfig
 import net.corda.libs.packaging.Cpk
 import net.corda.lifecycle.LifecycleCoordinator
@@ -38,31 +42,45 @@ import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
 import org.slf4j.Logger
 
+
+
+@Suppress("LongParameterList")
 @Component(service = [CpkReadService::class])
-class CpkReadServiceImpl (
+class CpkReadServiceImpl(
     coordinatorFactory: LifecycleCoordinatorFactory,
     private val configReadService: ConfigurationReadService,
     private val subscriptionFactory: SubscriptionFactory,
+    private val chunkDbWriterFactory: ChunkDbWriterFactory,
+    private val dbConnectionManager: DbConnectionManager,
+    private val cpiInfoWriteService: CpiInfoWriteService,
     private val workspacePathProvider: PathProvider,
     private val tempPathProvider: PathProvider
-) : CpkReadService, LifecycleEventHandler {
+): CpkReadService, LifecycleEventHandler {
 
-    @Activate
-    constructor(
-        @Reference(service = LifecycleCoordinatorFactory::class)
-        coordinatorFactory: LifecycleCoordinatorFactory,
-        @Reference(service = ConfigurationReadService::class)
-        configReadService: ConfigurationReadService,
-        @Reference(service = SubscriptionFactory::class)
-        subscriptionFactory: SubscriptionFactory
-    ): this(
-        coordinatorFactory,
-        configReadService,
-        subscriptionFactory,
-        WorkspacePathProvider(),
-        TempPathProvider()
-    )
-
+  @Activate
+  constructor(
+    @Reference(service = LifecycleCoordinatorFactory::class)
+    coordinatorFactory: LifecycleCoordinatorFactory,
+    @Reference(service = ConfigurationReadService::class)
+    configReadService: ConfigurationReadService,
+    @Reference(service = SubscriptionFactory::class)
+    subscriptionFactory: SubscriptionFactory,
+    @Reference(service = ChunkDbWriterFactory::class)
+    chunkDbWriterFactory: ChunkDbWriterFactory,
+    @Reference(service = DbConnectionManager::class)
+    dbConnectionManager: DbConnectionManager,
+    @Reference(service = CpiInfoWriteService::class)
+    cpiInfoWriteService: CpiInfoWriteService
+): this(
+      coordinatorFactory,
+      configReadService,
+      subscriptionFactory,
+      chunkDbWriterFactory,
+      dbConnectionManager,
+      cpiInfoWriteService,
+      WorkspacePathProvider(),
+      TempPathProvider()
+)
     companion object {
         val logger: Logger = contextLogger()
 
@@ -72,6 +90,8 @@ class CpkReadServiceImpl (
     }
 
     private val coordinator = coordinatorFactory.createCoordinator<CpkReadService>(this)
+
+    private var chunkDbWriter: ChunkDbWriter? = null
 
     @VisibleForTesting
     internal var configReadServiceRegistration: RegistrationHandle? = null
@@ -95,6 +115,9 @@ class CpkReadServiceImpl (
     }
 
     private fun onStartEvent(coordinator: LifecycleCoordinator) {
+        logger.debug("CpkReadService onStartEvent")
+        // ChunkReadServiceImpl used to start configReadService at this point
+        cpiInfoWriteService.start()
         configReadServiceRegistration?.close()
         configReadServiceRegistration =
             coordinator.followStatusChangesByName(setOf(LifecycleCoordinatorName.forComponent<ConfigurationReadService>()))
@@ -123,6 +146,14 @@ class CpkReadServiceImpl (
         logger.info("Configuring CPK Read Service")
         createCpkChunksKafkaReader(event.config.getConfig(MESSAGING_CONFIG), event.config.getConfig(BOOT_CONFIG))
         coordinator.updateStatus(LifecycleStatus.UP)
+
+        val messagingConfig = event.config.getConfig(MESSAGING_CONFIG)
+        val bootConfig = event.config.getConfig(BOOT_CONFIG)
+        chunkDbWriter?.close()
+        chunkDbWriter = chunkDbWriterFactory
+            .create(messagingConfig, bootConfig, dbConnectionManager.getClusterEntityManagerFactory(), cpiInfoWriteService)
+
+        chunkDbWriter?.start()
     }
 
     /**
@@ -176,6 +207,7 @@ class CpkReadServiceImpl (
         logger.debug { "CPK Read Service stopping" }
         coordinator.stop()
     }
+
 
     private fun closeResources() {
         configReadServiceRegistration?.close()

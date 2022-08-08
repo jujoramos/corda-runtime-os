@@ -1,7 +1,6 @@
 package net.corda.processors.db.internal
 
 import net.corda.chunking.datamodel.ChunkingEntities
-import net.corda.chunking.read.ChunkReadService
 import net.corda.configuration.read.ConfigChangedEvent
 import net.corda.configuration.read.ConfigurationReadService
 import net.corda.configuration.read.reconcile.ConfigReconcilerReader
@@ -70,8 +69,6 @@ class DBProcessorImpl @Activate constructor(
     private val permissionStorageWriterService: PermissionStorageWriterService,
     @Reference(service = VirtualNodeWriteService::class)
     private val virtualNodeWriteService: VirtualNodeWriteService,
-    @Reference(service = ChunkReadService::class)
-    private val chunkReadService: ChunkReadService,
     @Reference(service = CpkWriteService::class)
     private val cpkWriteService: CpkWriteService,
     @Reference(service = CpkReadService::class)
@@ -128,7 +125,6 @@ class DBProcessorImpl @Activate constructor(
         ::permissionStorageReaderService,
         ::permissionStorageWriterService,
         ::virtualNodeWriteService,
-        ::chunkReadService,
         ::cpkWriteService,
         ::cpkReadService,
         ::flowPersistenceService,

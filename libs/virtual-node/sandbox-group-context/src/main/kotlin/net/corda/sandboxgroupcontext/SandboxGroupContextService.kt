@@ -3,7 +3,7 @@ package net.corda.sandboxgroupcontext
 import net.corda.libs.packaging.core.CpkMetadata
 import net.corda.v5.crypto.SecureHash
 
-interface SandboxGroupContextService: AutoCloseable {
+interface  SandboxGroupContextService: AutoCloseable {
     /**
      * This function creates and returns a "fully constructed" node that is ready to
      * execute a flow with no further configuration required.  Your supplied initializer will be run
