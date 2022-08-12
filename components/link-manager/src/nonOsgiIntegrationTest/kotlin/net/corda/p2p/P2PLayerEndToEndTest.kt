@@ -61,6 +61,7 @@ import net.corda.schema.Schemas.P2P.Companion.P2P_IN_TOPIC
 import net.corda.schema.Schemas.P2P.Companion.P2P_OUT_MARKERS
 import net.corda.schema.Schemas.P2P.Companion.P2P_OUT_TOPIC
 import net.corda.schema.configuration.BootConfig.INSTANCE_ID
+import net.corda.schema.configuration.ConfigKeys
 import net.corda.test.util.eventually
 import net.corda.v5.base.util.contextLogger
 import net.corda.v5.base.util.seconds
@@ -83,12 +84,13 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import org.mockito.kotlin.mock
+import java.time.Instant
 import java.util.UUID
 
 class P2PLayerEndToEndTest {
 
     companion object {
-        private const val EXPIRED_TTL = 0L
+        private val EXPIRED_TTL = Instant.ofEpochMilli(0)
         private const val SUBSYSTEM = "e2e.test.app"
         private val logger = contextLogger()
         private const val GROUP_ID = "group-1"
@@ -421,6 +423,8 @@ class P2PLayerEndToEndTest {
                 mock(),
                 mock(),
                 mock(),
+                mock(),
+                mock(),
                 ThirdPartyComponentsMode.STUB
             )
 
@@ -436,22 +440,21 @@ class P2PLayerEndToEndTest {
             )
 
         private fun Publisher.publishConfig(key: String, config: Config) {
+            val configSource = config.root().render(ConfigRenderOptions.concise())
             this.publish(
                 listOf(
                     Record(
                         CONFIG_TOPIC,
                         key,
-                        Configuration(config.root().render(ConfigRenderOptions.concise()), 0, ConfigurationSchemaVersion(1, 0))
+                        Configuration(configSource, configSource, 0, ConfigurationSchemaVersion(1, 0))
                     )
                 )
             ).forEach { it.get() }
         }
 
         private fun publishConfig() {
-            val gatewayConfigKey = "p2p.gateway"
-            configPublisher.publishConfig(gatewayConfigKey, gatewayConfig)
-            val linkManagerConfigKey = "${LinkManagerConfiguration.PACKAGE_NAME}.${LinkManagerConfiguration.COMPONENT_NAME}"
-            configPublisher.publishConfig(linkManagerConfigKey, linkManagerConfig)
+            configPublisher.publishConfig(ConfigKeys.P2P_GATEWAY_CONFIG, gatewayConfig)
+            configPublisher.publishConfig(ConfigKeys.P2P_LINK_MANAGER_CONFIG, linkManagerConfig)
         }
 
         private val keyStores = ourIdentities.mapNotNull {
@@ -621,7 +624,7 @@ class P2PLayerEndToEndTest {
             ).also { it.start() }
         }
 
-        fun sendMessages(messagesToSend: Int, ourIdentity: Identity, peer: Identity, ttl: Long? = null) {
+        fun sendMessages(messagesToSend: Int, ourIdentity: Identity, peer: Identity, ttl: Instant? = null) {
             val hostAApplicationWriter = publisherFactory.createPublisher(PublisherConfig("app-layer", false), bootstrapConfig)
             val initialMessages = (1..messagesToSend).map { index ->
                 val incrementalId = index.toString()

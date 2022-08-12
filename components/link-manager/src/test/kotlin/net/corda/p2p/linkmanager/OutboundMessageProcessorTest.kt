@@ -22,7 +22,9 @@ import net.corda.p2p.markers.LinkManagerProcessedMarker
 import net.corda.p2p.markers.TtlExpiredMarker
 import net.corda.schema.Schemas
 import net.corda.test.util.MockTimeFacilitiesProvider
+import net.corda.test.util.identity.createTestHoldingIdentity
 import net.corda.v5.base.util.seconds
+import net.corda.virtualnode.toAvro
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.SoftAssertions.assertSoftly
 import org.junit.jupiter.api.Test
@@ -34,11 +36,12 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.nio.ByteBuffer
+import java.time.Instant
 
 class OutboundMessageProcessorTest {
-    private val myIdentity = HoldingIdentity("PartyA", "Group")
-    private val localIdentity = HoldingIdentity("PartyB", "Group")
-    private val remoteIdentity = HoldingIdentity("PartyC", "Group")
+    private val myIdentity = createTestHoldingIdentity("CN=PartyA, O=Corp, L=LDN, C=GB", "Group")
+    private val localIdentity = createTestHoldingIdentity("CN=PartyB, O=Corp, L=LDN, C=GB", "Group")
+    private val remoteIdentity = createTestHoldingIdentity("CN=PartyC, O=Corp, L=LDN, C=GB", "Group")
     private val membersAndGroups = mockMembersAndGroups(
         myIdentity, localIdentity, remoteIdentity
     )
@@ -74,8 +77,8 @@ class OutboundMessageProcessorTest {
         val payload = "test"
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                myIdentity,
-                localIdentity,
+                myIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "message-id", "trace-id", "system-1"
             ),
             ByteBuffer.wrap(payload.toByteArray())
@@ -122,8 +125,8 @@ class OutboundMessageProcessorTest {
         val payload = "test"
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                myIdentity,
-                localIdentity,
+                myIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "message-id", "trace-id", "system-1"
             ),
             ByteBuffer.wrap(payload.toByteArray())
@@ -142,8 +145,8 @@ class OutboundMessageProcessorTest {
         val payload = "test"
         val unauthenticatedMsg = UnauthenticatedMessage(
             UnauthenticatedMessageHeader(
-                myIdentity,
-                localIdentity,
+                myIdentity.toAvro(),
+                localIdentity.toAvro(),
                 "subsystem"
             ),
             ByteBuffer.wrap(payload.toByteArray())
@@ -171,8 +174,8 @@ class OutboundMessageProcessorTest {
         val payload = "test"
         val unauthenticatedMsg = UnauthenticatedMessage(
             UnauthenticatedMessageHeader(
-                remoteIdentity,
-                myIdentity,
+                remoteIdentity.toAvro(),
+                myIdentity.toAvro(),
                 "subsystem"
             ),
             ByteBuffer.wrap(payload.toByteArray()),
@@ -204,8 +207,8 @@ class OutboundMessageProcessorTest {
         val numberOfMessages = 3
         val messages = (1..numberOfMessages).map { i ->
             val header = AuthenticatedMessageHeader(
-                remoteIdentity,
-                myIdentity,
+                remoteIdentity.toAvro(),
+                myIdentity.toAvro(),
                 null,
                 "MessageId$i",
                 "trace-$i",
@@ -238,8 +241,8 @@ class OutboundMessageProcessorTest {
         val numberOfMessages = 3
         val messages = (1..numberOfMessages).map { i ->
             val header = AuthenticatedMessageHeader(
-                remoteIdentity,
-                myIdentity,
+                remoteIdentity.toAvro(),
+                myIdentity.toAvro(),
                 null,
                 "MessageId$i",
                 "trace-$i",
@@ -268,8 +271,8 @@ class OutboundMessageProcessorTest {
         whenever(sessionManager.processOutboundMessage(any())).thenReturn(SessionManager.SessionState.SessionAlreadyPending)
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                remoteIdentity,
-                localIdentity,
+                remoteIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "message-id", "trace-id", "system-1"
             ),
             ByteBuffer.wrap("payload".toByteArray())
@@ -300,8 +303,8 @@ class OutboundMessageProcessorTest {
         whenever(assignedListener.getCurrentlyAssignedPartitions()).doReturn(inboundSubscribedTopics)
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                remoteIdentity,
-                localIdentity,
+                remoteIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "message-id", "trace-id", "system-1"
             ),
             ByteBuffer.wrap("payload".toByteArray())
@@ -355,8 +358,8 @@ class OutboundMessageProcessorTest {
         whenever(assignedListener.getCurrentlyAssignedPartitions()).doReturn(inboundSubscribedTopics)
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                remoteIdentity,
-                localIdentity,
+                remoteIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "message-id", "trace-id", "system-1"
             ),
             ByteBuffer.wrap("payload".toByteArray())
@@ -392,8 +395,8 @@ class OutboundMessageProcessorTest {
         whenever(assignedListener.getCurrentlyAssignedPartitions()).doReturn(inboundSubscribedTopics)
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                remoteIdentity,
-                localIdentity,
+                remoteIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "message-id", "trace-id", "system-1"
             ),
             ByteBuffer.wrap("payload".toByteArray())
@@ -419,8 +422,8 @@ class OutboundMessageProcessorTest {
                 AppMessage(
                     AuthenticatedMessage(
                         AuthenticatedMessageHeader(
-                            remoteIdentity,
-                            myIdentity,
+                            remoteIdentity.toAvro(),
+                            myIdentity.toAvro(),
                             null, id, "trace-id", "system-1"
                         ),
                         ByteBuffer.wrap(id.toByteArray())
@@ -458,8 +461,8 @@ class OutboundMessageProcessorTest {
         whenever(sessionManager.processOutboundMessage(any())).thenReturn(state)
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                remoteIdentity,
-                localIdentity,
+                remoteIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "message-id", "trace-id", "system-1"
             ),
             ByteBuffer.wrap("0".toByteArray())
@@ -497,8 +500,8 @@ class OutboundMessageProcessorTest {
                 AppMessage(
                     AuthenticatedMessage(
                         AuthenticatedMessageHeader(
-                            remoteIdentity,
-                            localIdentity,
+                            remoteIdentity.toAvro(),
+                            localIdentity.toAvro(),
                             null, "message-id", "trace-id", "system-1"
                         ),
                         ByteBuffer.wrap("payload".toByteArray())
@@ -526,8 +529,8 @@ class OutboundMessageProcessorTest {
             AuthenticatedMessageAndKey(
                 AuthenticatedMessage(
                     AuthenticatedMessageHeader(
-                        remoteIdentity,
-                        localIdentity,
+                        remoteIdentity.toAvro(),
+                        localIdentity.toAvro(),
                         null, "message-id", "trace-id", "system-1"
                     ),
                     ByteBuffer.wrap("payload".toByteArray())
@@ -547,8 +550,8 @@ class OutboundMessageProcessorTest {
         val appMessage = AppMessage(
             AuthenticatedMessage(
                 AuthenticatedMessageHeader(
-                    HoldingIdentity("PartyE", "Group"),
-                    localIdentity,
+                    HoldingIdentity("CN=PartyE, O=Corp, L=LDN, C=GB", "Group"),
+                    localIdentity.toAvro(),
                     null, "message-id", "trace-id", "system-1"
                 ),
                 ByteBuffer.wrap("payload".toByteArray())
@@ -580,8 +583,8 @@ class OutboundMessageProcessorTest {
         whenever(sessionManager.processOutboundMessage(any())).thenReturn(SessionManager.SessionState.SessionAlreadyPending)
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                remoteIdentity,
-                localIdentity,
+                remoteIdentity.toAvro(),
+                localIdentity.toAvro(),
                 null, "MessageId", "trace-id", "system-1"
             ),
             ByteBuffer.wrap("payload".toByteArray())
@@ -590,7 +593,7 @@ class OutboundMessageProcessorTest {
             authenticatedMsg,
             "key"
         )
-        authenticatedMessageAndKey.message.header.ttl = 0L
+        authenticatedMessageAndKey.message.header.ttl = Instant.ofEpochMilli(0)
 
         val records = processor.processReplayedAuthenticatedMessage(authenticatedMessageAndKey)
 
@@ -612,9 +615,9 @@ class OutboundMessageProcessorTest {
     fun `OutboundMessageProcessor produces TtlExpiredMarker and LinkManagerProcessedMarker if TTL expiry is true and replay is false`() {
         val authenticatedMsg = AuthenticatedMessage(
             AuthenticatedMessageHeader(
-                remoteIdentity,
-                localIdentity,
-                0, "MessageId", "trace-id", "system-1"
+                remoteIdentity.toAvro(),
+                localIdentity.toAvro(),
+                Instant.ofEpochMilli(0), "MessageId", "trace-id", "system-1"
             ),
             ByteBuffer.wrap("payload".toByteArray())
         )

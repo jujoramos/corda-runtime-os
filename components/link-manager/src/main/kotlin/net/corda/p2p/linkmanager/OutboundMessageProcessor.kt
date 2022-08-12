@@ -21,8 +21,10 @@ import net.corda.schema.Schemas
 import net.corda.utilities.time.Clock
 import net.corda.v5.base.util.debug
 import net.corda.v5.base.util.trace
+import net.corda.virtualnode.toCorda
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Instant
 
 @Suppress("LongParameterList")
 internal class OutboundMessageProcessor(
@@ -72,9 +74,9 @@ internal class OutboundMessageProcessor(
         return records
     }
 
-    private fun ttlExpired(ttl: Long?): Boolean {
+    private fun ttlExpired(ttl: Instant?): Boolean {
         if (ttl == null) return false
-        val currentTimeInTimeMillis = clock.instant().toEpochMilli()
+        val currentTimeInTimeMillis = clock.instant()
         return currentTimeInTimeMillis >= ttl
     }
 
@@ -102,7 +104,7 @@ internal class OutboundMessageProcessor(
 
     private fun processUnauthenticatedMessage(message: UnauthenticatedMessage): List<Record<String, *>> {
         logger.debug { "Processing outbound ${message.javaClass} to ${message.header.destination}." }
-        return if (linkManagerHostingMap.isHostedLocally(message.header.destination)) {
+        return if (linkManagerHostingMap.isHostedLocally(message.header.destination.toCorda())) {
             listOf(Record(Schemas.P2P.P2P_IN_TOPIC, LinkManager.generateKey(), AppMessage(message)))
         } else {
             val linkOutMessage = MessageConverter.linkOutFromUnauthenticatedMessage(message, groups, members)
@@ -140,7 +142,7 @@ internal class OutboundMessageProcessor(
             }
         }
 
-        if (linkManagerHostingMap.isHostedLocally(messageAndKey.message.header.destination)) {
+        if (linkManagerHostingMap.isHostedLocally(messageAndKey.message.header.destination.toCorda())) {
             return if (isReplay) {
                 /* This code block was added to fix a race which happens if the OutboundMessageProcessor runs quicker than the
                  * DeliveryTracker. Under normal circumstances a message to locally hosted holding identity will be added and then removed
