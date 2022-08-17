@@ -262,6 +262,7 @@ class LifecycleCoordinatorImpl(
     }
 
     override fun close() {
+        if (_isClosed.get()) return
         logger.trace { "$name: Closing coordinator" }
         stop()
         postEvent(CloseCoordinator())

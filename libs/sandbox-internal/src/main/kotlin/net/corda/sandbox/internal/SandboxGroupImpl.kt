@@ -42,7 +42,7 @@ internal class SandboxGroupImpl(
             try {
                 sandbox.loadClassFromMainBundle(className)
             } catch (e: SandboxException) {
-                logger.info("Could not load class $className from sandbox ${sandbox.cpkMetadata.mainBundle}: ${e.message}")
+                logger.trace("Did not load class $className from sandbox ${sandbox.cpkMetadata.mainBundle}: ${e.message}")
                 null
             }
         }.singleOrNull()
