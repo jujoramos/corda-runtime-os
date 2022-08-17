@@ -252,7 +252,7 @@ class PersistenceServiceInternalTests {
         val records = listOf(Record(TOPIC, requestId, request))
 
         // Now "send" the request for processing and "receive" the responses.
-        val responses = processor.onNext(records)
+        val responses = processor.onNext(records, silent=true)
 
         // And check the results
 
@@ -564,7 +564,7 @@ class PersistenceServiceInternalTests {
         }
         val request = createRequest(ctx.virtualNodeInfo.holdingIdentity,FindAll(DOG_CLASS_NAME, 0, Int.MAX_VALUE))
 
-        val responses = assertFailureResponses(processor.onNext(listOf(Record(TOPIC, UUID.randomUUID().toString(), request))))
+        val responses = assertFailureResponses(processor.onNext(listOf(Record(TOPIC, UUID.randomUUID().toString(), request)), silent = true))
 
         val flowEvent = responses.first().value as FlowEvent
         val response = flowEvent.payload as EntityResponse
@@ -584,7 +584,7 @@ class PersistenceServiceInternalTests {
         }
         val request = createRequest(ctx.virtualNodeInfo.holdingIdentity, FindEntity(DOG_CLASS_NAME, ctx.serialize(dogId)))
 
-        val responses = assertFailureResponses(processor.onNext(listOf(Record(TOPIC, UUID.randomUUID().toString(), request))))
+        val responses = assertFailureResponses(processor.onNext(listOf(Record(TOPIC, UUID.randomUUID().toString(), request)), silent=true))
 
         val flowEvent = responses.first().value as FlowEvent
         val response = flowEvent.payload as EntityResponse
@@ -612,7 +612,12 @@ class PersistenceServiceInternalTests {
         }
         val request = createRequest(ctx.virtualNodeInfo.holdingIdentity, MergeEntities(listOf(ctx.serialize(modifiedDog))))
 
-        val responses = assertFailureResponses(processor.onNext(listOf(Record(TOPIC, UUID.randomUUID().toString(), request))))
+        val responses = assertFailureResponses(
+            processor.onNext(
+                listOf(Record(TOPIC, UUID.randomUUID().toString(), request)),
+                silent = true
+            )
+        )
 
         val flowEvent = responses.first().value as FlowEvent
         val response = flowEvent.payload as EntityResponse
@@ -874,7 +879,7 @@ class PersistenceServiceInternalTests {
             it
         }
         val request = createRequest(ctx.virtualNodeInfo.holdingIdentity, rec)
-        val records = processor.onNext(listOf(Record(TOPIC, UUID.randomUUID().toString(), request)))
+        val records = processor.onNext(listOf(Record(TOPIC, UUID.randomUUID().toString(), request)), silent=expectFailure != null)
         assertThat(records.size).withFailMessage("can only use this helper method with 1 result").isEqualTo(1)
         val record = records.first()
         val flowEvent = record.value as FlowEvent
