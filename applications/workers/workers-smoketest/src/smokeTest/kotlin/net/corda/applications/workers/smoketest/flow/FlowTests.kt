@@ -243,7 +243,7 @@ class FlowTests {
 
         result = awaitRpcFlowFinished(bobHoldingId, requestId)
 
-        assertThat(result.flowStatus).isEqualTo(RPC_FLOW_STATUS_SUCCESS)
+        assertThat(result.flowStatus).isEqualTo(RPC_FLOW_STATUS_SUCCESS) // THIS FAILS ON JENKINS
         flowResult = result.getRpcFlowResult()
         assertThat(flowResult.result).isEqualTo("dog '${id}' updated")
 
