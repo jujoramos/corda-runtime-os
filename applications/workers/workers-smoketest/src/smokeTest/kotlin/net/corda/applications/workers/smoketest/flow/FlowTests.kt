@@ -47,7 +47,8 @@ class FlowTests {
             "net.cordapp.flowworker.development.testflows.TestFlow",
             "net.cordapp.flowworker.development.testflows.BrokenProtocolFlow",
             "net.cordapp.flowworker.development.testflows.MessagingFlow",
-            "net.cordapp.flowworker.development.testflows.PersistenceFlow"
+            "net.cordapp.flowworker.development.testflows.PersistenceFlow",
+            "net.cordapp.flowworker.development.testflows.UniquenessCheckTestFlow"
         )
 
         /*
@@ -442,5 +443,17 @@ class FlowTests {
 
         assertThat(flowResult.result)
             .isEqualTo(CONTEXT_JSON)
+    }
+
+    @Test
+    fun `Uniqueness client service flow is finishing without exceptions`() {
+        val requestID =
+            startRpcFlow(
+                bobHoldingId,
+                mapOf(),
+                "net.cordapp.flowworker.development.testflows.UniquenessCheckTestFlow"
+            )
+        val result = awaitRpcFlowFinished(bobHoldingId, requestID)
+        assertThat(result.flowStatus).isEqualTo(RPC_FLOW_STATUS_SUCCESS)
     }
 }

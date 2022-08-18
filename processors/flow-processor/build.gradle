@@ -26,6 +26,7 @@ dependencies {
     implementation project(":components:virtual-node:cpk-read-service")
     implementation project(":components:virtual-node:sandbox-group-context-service")
     implementation project(":components:virtual-node:virtual-node-info-read-service")
+    implementation project(":components:uniqueness:uniqueness-checker")
     implementation project(":libs:lifecycle:lifecycle")
     implementation project(":libs:messaging:messaging")
     implementation project(':libs:virtual-node:sandbox-group-context')
@@ -35,6 +36,8 @@ dependencies {
     runtimeOnly "net.corda:corda-avro-schema"
     runtimeOnly project(':libs:crypto:merkle-impl')
     runtimeOnly project(":components:configuration:configuration-read-service-impl")
+    runtimeOnly project(":components:uniqueness:uniqueness-checker-client-service-impl")
+    runtimeOnly project(':testing:uniqueness:uniqueness-checker-fake')
     runtimeOnly project(":components:membership:membership-group-read-impl")
     runtimeOnly project(":components:virtual-node:cpi-info-read-service-impl")
     runtimeOnly project(":components:virtual-node:cpk-read-service-impl")
@@ -47,6 +50,7 @@ dependencies {
     runtimeOnly project(":libs:sandbox-internal")
     runtimeOnly project(":libs:schema-registry:schema-registry-impl")
     runtimeOnly project(":libs:serialization:serialization-kryo")
+    runtimeOnly project(":components:flow:flow-service")
 }
 
 description 'Flow Worker Processor'
