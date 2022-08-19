@@ -43,7 +43,7 @@ object GroupPolicyUtils {
                 "sessionPki" to "Standard",
                 "tlsPki" to "Standard",
                 "tlsVersion" to "1.3",
-                "protocolMode" to "Authentication_Encryption"
+                "protocolMode" to "Authenticated_Encryption"
             ),
             "cipherSuite" to mapOf(
                 "corda.provider" to "default",

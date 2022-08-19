@@ -188,7 +188,7 @@ class MGMRegistrationServiceTest {
                 to "net.corda.membership.impl.registration.dynamic.MemberRegistrationService",
         "corda.group.protocol.synchronisation"
                 to "net.corda.membership.impl.sync.dynamic.MemberSyncService",
-        "corda.group.protocol.p2p.mode" to "AUTHENTICATION_ENCRYPTION",
+        "corda.group.protocol.p2p.mode" to "Authenticated_Encryption",
         "corda.group.key.session.policy" to "Combined",
         "corda.group.pki.session" to "Standard",
         "corda.group.pki.tls" to "C5",
@@ -335,7 +335,7 @@ class MGMRegistrationServiceTest {
                             to "net.corda.membership.impl.registration.dynamic.MemberRegistrationService",
                     "protocol.synchronisation"
                             to "net.corda.membership.impl.sync.dynamic.MemberSyncService",
-                    "protocol.p2p.mode" to "AUTHENTICATION_ENCRYPTION",
+                    "protocol.p2p.mode" to "Authenticated_Encryption",
                     "key.session.policy" to "Combined",
                     "pki.session" to "Standard",
                     "pki.tls" to "C5",
