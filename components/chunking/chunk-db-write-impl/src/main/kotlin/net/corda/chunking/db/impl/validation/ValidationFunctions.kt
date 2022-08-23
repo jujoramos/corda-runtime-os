@@ -16,7 +16,6 @@ import net.corda.libs.packaging.core.exception.PackagingException
 import net.corda.v5.base.exceptions.CordaRuntimeException
 import net.corda.v5.crypto.SecureHash
 import org.slf4j.Logger
-import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.persistence.PersistenceException
@@ -165,25 +164,6 @@ fun Cpi.validateAndGetGroupId(getGroupIdFromJson: (String) -> String): String {
     }
     if (groupId.isBlank()) throw ValidationException("CPI group policy file needs a groupId")
     return groupId
-}
-
-/**
- * @throws ValidationException if the signature is incorrect
- */
-fun FileInfo.checkSignature() {
-    if (!Files.newInputStream(this.path).use { isSigned(it) }) {
-        throw ValidationException("Signature invalid: ${this.name}")
-    }
-}
-
-/**
- * STUB - this needs to be implemented
- */
-@Suppress("UNUSED_PARAMETER")
-private fun isSigned(cpiInputStream: InputStream): Boolean {
-    // STUB:  we need to implement this (can change function argument to Path).
-    // The CPI loading code has some signature validation in it, so this stub may be unnecessary.
-    return true
 }
 
 /**

@@ -8,6 +8,7 @@ import net.corda.chunking.db.impl.persistence.StatusPublisher
 import net.corda.cpiinfo.write.CpiInfoWriteService
 import net.corda.libs.cpiupload.ValidationException
 import net.corda.libs.packaging.Cpi
+import net.corda.libs.packaging.PackagingConstants
 import net.corda.libs.packaging.core.CpiMetadata
 import net.corda.libs.packaging.verify.verifyCpi
 import net.corda.membership.certificate.service.CertificatesService
@@ -19,6 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import java.util.jar.JarInputStream
 
 
 @Suppress("LongParameterList")
@@ -46,23 +48,8 @@ class CpiValidatorImpl constructor(
         publisher.update(requestId, "Validating upload")
         val fileInfo = assembleFileFromChunks(cpiCacheDir, chunkPersistence, requestId, ChunkReaderFactoryImpl)
 
-        publisher.update(requestId, "Checking signatures")
-        fileInfo.checkSignature()
-
-        // The following bit in only just adds the verifyCpi call site to compile. Having said that:
-        // - The following (cordadevcodesignpublic.pem) is the certificate of "cordadevcodesign.p12" (default)
-        // used in `corda-gradle-plugins.cordapp-cpk` (defaulted CPB developer certificate).
-        // - Normally we would need to load two certificates to verify a CPI, the CPB developer's and the network operator's (?).
-        // - The following CPI verification is de-activated for now because does not work.
-        // TODO "cpiVerificationEnabled" deactivation flag is to be removed once CPI verification works as per
-        //  https://r3-cev.atlassian.net/browse/CORE-5407
-        val cpiVerificationEnabled = System.getProperty("cpiVerificationEnabled", "false").toBoolean()
-        if (cpiVerificationEnabled) {
-            publisher.update(requestId, "Verifying CPI")
-            // - The certificates are normally going to be loaded from the database.
-            val certs = getCerts()
-            verifyCpi(fileInfo.name, Files.newInputStream(fileInfo.path), certs)
-        }
+        publisher.update(requestId, "Verifying CPI")
+        fileInfo.verifyCpi(getCerts())
 
         publisher.update(requestId, "Validating CPI")
         val cpi: Cpi = fileInfo.validateAndGetCpi(cpiPartsDir)
@@ -132,5 +119,32 @@ class CpiValidatorImpl constructor(
         }
         val certificateFactory = CertificateFactory.getInstance("X.509")
         return certs.map { certificateFactory.generateCertificate(it.byteInputStream()) as X509Certificate }
+    }
+
+    /**
+     * Verifies CPI
+     *
+     * @throws ValidationException if CPI format > 1.0
+     */
+    private fun FileInfo.verifyCpi(certificates: Collection<X509Certificate>) {
+        fun isCpiFormatV1() =
+            try {
+                val format = JarInputStream(Files.newInputStream(path)).use {
+                    it.manifest.mainAttributes.getValue(PackagingConstants.CPI_FORMAT_ATTRIBUTE)
+                }
+                format == null || format == "1.0"
+            } catch (t: Throwable) {
+                false
+            }
+
+        try {
+            verifyCpi(name, Files.newInputStream(path), certificates)
+        } catch (ex: Exception) {
+            if (isCpiFormatV1()) {
+                log.warn("Error validating CPI. Ignoring error for format 1.0: ${ex.message}", ex)
+            } else {
+                throw ValidationException("Error validating CPI.  ${ex.message}", ex)
+            }
+        }
     }
 }
