@@ -1,8 +1,10 @@
 package net.corda.flow.application.sessions.factory
 
-import net.corda.flow.application.sessions.FlowSessionImpl
+import net.corda.flow.application.sessions.IncomingFlowSessionImpl
+import net.corda.flow.application.sessions.OutgoingFlowSessionImpl
 import net.corda.flow.fiber.FlowFiberService
-import net.corda.v5.application.messaging.FlowSession
+import net.corda.v5.application.messaging.IncomingFlowSession
+import net.corda.v5.application.messaging.OutgoingFlowSession
 import net.corda.v5.base.types.MemberX500Name
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
@@ -17,10 +19,20 @@ class FlowSessionFactoryImpl @Activate constructor(
     private val flowFiberService: FlowFiberService
 ) : FlowSessionFactory {
 
-    override fun create(sessionId: String, x500Name: MemberX500Name, initiated: Boolean): FlowSession {
+    override fun createIncoming(sessionId: String, x500Name: MemberX500Name): IncomingFlowSession {
         return try {
             AccessController.doPrivileged(PrivilegedExceptionAction {
-                FlowSessionImpl(counterparty = x500Name, sessionId, flowFiberService, initiated)
+                IncomingFlowSessionImpl(counterparty = x500Name, sessionId, flowFiberService)
+            })
+        } catch (e: PrivilegedActionException) {
+            throw e.exception
+        }
+    }
+
+    override fun createOutgoing(sessionId: String, x500Name: MemberX500Name): OutgoingFlowSession {
+        return try {
+            AccessController.doPrivileged(PrivilegedExceptionAction {
+                OutgoingFlowSessionImpl(counterparty = x500Name, sessionId, flowFiberService)
             })
         } catch (e: PrivilegedActionException) {
             throw e.exception
