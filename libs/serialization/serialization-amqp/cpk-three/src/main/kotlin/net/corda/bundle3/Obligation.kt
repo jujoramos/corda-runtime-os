@@ -1,7 +1,7 @@
 package net.corda.bundle3
 
-import net.corda.bundle1.Cash
-import net.corda.bundle2.Document
+import net.cordapp.bundle1.Cash
+import net.cordapp.bundle2.Document
 import net.corda.v5.base.annotations.CordaSerializable
 
 @CordaSerializable

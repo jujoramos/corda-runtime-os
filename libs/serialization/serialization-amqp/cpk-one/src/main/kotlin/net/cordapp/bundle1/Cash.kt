@@ -1,6 +1,6 @@
-package net.corda.bundle2
+package net.cordapp.bundle1
 
 import net.corda.v5.base.annotations.CordaSerializable
 
 @CordaSerializable
-class Document(val content: String)
+data class Cash(val amount: Int)
