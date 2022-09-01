@@ -1,8 +1,8 @@
 package net.cordapp.bundle4
 
-import net.corda.bundle5.Container
+import net.cordapp.bundle5.Container
 import net.cordapp.bundle2.Document
-import net.corda.bundle3.Obligation
+import net.cordapp.bundle3.Obligation
 import net.corda.v5.base.annotations.CordaSerializable
 
 @CordaSerializable
