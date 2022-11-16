@@ -65,6 +65,21 @@ tasks.register('publishOSGiImage', DeployableContainerBuilder) {
         multiArch = multiArchSupport.toBoolean()
     }
 
+    // List of architectures for which to generate images, in the form "arch1=os,arch2=os"
+    // Architecture name is set as the prefix for the tag image.
+    if (project.hasProperty('targetArchitecures')) {
+        Map<String, String> architectures = new HashMap<String, String>()
+        String[] pairs = project.property("targetArchitecures").toString().split(",")
+
+        for (int i = 0; i < pairs.length; i++) {
+            String pair = pairs[i]
+            String[] keyValue = pair.split("=")
+            architectures.put(keyValue[0], keyValue[1])
+        }
+
+        targetArchitectures = architectures
+    }
+
     if (project.hasProperty('workerBaseImageTag')) {
         baseImageTag = workerBaseImageTag
     }
