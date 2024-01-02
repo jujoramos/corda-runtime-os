@@ -1,6 +1,5 @@
 package net.corda.flow.state.impl
 
-import java.time.Instant
 import net.corda.data.crypto.SecureHash
 import net.corda.data.flow.state.checkpoint.Checkpoint
 import net.corda.data.flow.state.checkpoint.PipelineState
@@ -20,7 +19,7 @@ class FlowCheckpointFactoryImpl @Activate constructor(
 ) : FlowCheckpointFactory {
     override fun create(flowId: String, checkpoint: Checkpoint?, config: SmartConfig): FlowCheckpoint {
         val checkpointToUse = checkpoint ?: newCheckpoint(flowId, config)
-        return FlowCheckpointImpl(checkpointToUse, config) { Instant.now() }
+        return FlowCheckpointImpl(checkpointToUse, config)
     }
 
     private fun newCheckpoint(newFlowId: String, config: SmartConfig): Checkpoint {

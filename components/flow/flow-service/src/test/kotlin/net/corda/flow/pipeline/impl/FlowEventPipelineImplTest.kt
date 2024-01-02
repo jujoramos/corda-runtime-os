@@ -28,10 +28,9 @@ import net.corda.data.flow.state.waiting.Wakeup as WakeUpWaitingFor
 
 class FlowEventPipelineImplTest {
 
+    private val runOrContinueTimeout = 60000L
     private val payload = ExternalEventResponse("foo")
     private val waitingForWakeup = WaitingFor(WakeUpWaitingFor())
-
-    private val RUN_OR_CONTINUE_TIMEOUT = 60000L
 
     private val mockHoldingIdentity = mock<HoldingIdentity>().apply {
         whenever(shortHash).thenReturn(ShortHash.Companion.of("0123456789abc"))
@@ -39,7 +38,6 @@ class FlowEventPipelineImplTest {
     private val mockFlowId = "flow_id_111"
     private val checkpoint = mock<FlowCheckpoint>().apply {
         whenever(waitingFor).thenReturn(waitingForWakeup)
-        whenever(inRetryState).thenReturn(false)
         whenever(holdingIdentity).thenReturn(mockHoldingIdentity)
         whenever(flowId).thenReturn(mockFlowId)
         whenever(flowStartContext).thenReturn(FlowStartContext().apply {
@@ -144,8 +142,8 @@ class FlowEventPipelineImplTest {
     @Test
     fun `execute flow invokes the execute flow pipeline stage`() {
         val pipeline = buildPipeline()
-        pipeline.executeFlow(RUN_OR_CONTINUE_TIMEOUT)
-        verify(mockFlowExecutionPipelineStage).runFlow(eq(defaultinputContext), eq(RUN_OR_CONTINUE_TIMEOUT), any())
+        pipeline.executeFlow(runOrContinueTimeout)
+        verify(mockFlowExecutionPipelineStage).runFlow(eq(defaultinputContext), eq(runOrContinueTimeout), any())
     }
 
     @Test

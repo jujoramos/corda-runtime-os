@@ -18,7 +18,6 @@ import net.corda.tracing.TraceContext
  * @param checkpoint The [FlowCheckpoint] of a flow that should be modified by the pipeline.
  * @param inputEvent The received [FlowEvent].
  * @param inputEventPayload The received [FlowEvent.payload].
- * @param isRetryEvent True if this event is being retried.
  * @param outputRecords The [Record]s that should be sent back to the message bus when the pipeline completes.
  * @param T The type of [FlowEvent.payload].
  * @param mdcProperties properties to set the flow fibers MDC with.
@@ -32,7 +31,6 @@ data class FlowEventContext<T>(
     var inputEventPayload: T,
     val configs: Map<String, SmartConfig>,
     val flowConfig: SmartConfig,
-    var isRetryEvent: Boolean = false,
     val outputRecords: List<Record<*, *>>,
     val sendToDlq: Boolean = false,
     val mdcProperties: Map<String, String>,

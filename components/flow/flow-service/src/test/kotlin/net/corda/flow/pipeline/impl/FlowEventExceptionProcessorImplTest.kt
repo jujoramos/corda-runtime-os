@@ -16,7 +16,6 @@ import net.corda.flow.pipeline.exceptions.FlowEventException
 import net.corda.flow.pipeline.exceptions.FlowFatalException
 import net.corda.flow.pipeline.exceptions.FlowPlatformException
 import net.corda.flow.pipeline.exceptions.FlowProcessingExceptionTypes
-import net.corda.flow.pipeline.exceptions.FlowTransientException
 import net.corda.flow.pipeline.factory.FlowMessageFactory
 import net.corda.flow.pipeline.factory.FlowRecordFactory
 import net.corda.flow.pipeline.sessions.FlowSessionManager
@@ -80,7 +79,7 @@ class FlowEventExceptionProcessorImplTest {
     fun `unexpected exception`() {
         val error = IllegalStateException()
 
-        val result = target.process(error,context)
+        val result = target.process(error, context)
 
         verify(result.checkpoint).markDeleted()
         assertThat(result.sendToDlq).isTrue
@@ -99,7 +98,7 @@ class FlowEventExceptionProcessorImplTest {
         val startContext = mock<FlowStartContext>()
         whenever(flowCheckpoint.flowStartContext).thenReturn(startContext)
         whenever(flowCheckpoint.flowKey).thenReturn(key)
-        val cleanupRecords = listOf (flowMapperRecord)
+        val cleanupRecords = listOf(flowMapperRecord)
         whenever(checkpointCleanupHandler.cleanupCheckpoint(any(), any(), any())).thenReturn(cleanupRecords)
 
         val result = target.process(error, context)
@@ -142,17 +141,6 @@ class FlowEventExceptionProcessorImplTest {
 
         verify(result.checkpoint).waitingFor = WaitingFor(net.corda.data.flow.state.waiting.Wakeup())
         verify(result.checkpoint).setPendingPlatformError(FlowProcessingExceptionTypes.PLATFORM_ERROR, error.message)
-    }
-
-    @Test
-    fun `throwable triggered during transient exception processing does not escape the processor`() {
-        val throwable = RuntimeException()
-        whenever(flowCheckpoint.currentRetryCount).thenReturn(1)
-        whenever(flowMessageFactory.createFlowRetryingStatusMessage(flowCheckpoint)).thenThrow(throwable)
-
-        val transientError = FlowTransientException("error")
-        val transientResult = target.process(transientError, context)
-        assertEmptyDLQdResult(transientResult)
     }
 
     @Test

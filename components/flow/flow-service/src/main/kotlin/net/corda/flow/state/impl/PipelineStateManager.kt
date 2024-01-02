@@ -23,61 +23,15 @@ import kotlin.math.pow
  */
 class PipelineStateManager(
     private val state: PipelineState,
-    private val config: SmartConfig,
-    private val instantProvider: () -> Instant
 ) {
-
-    private companion object {
-        private const val RETRY_INITIAL_DELAY_MS = 1000
-    }
-
-    init {
-        // Reset the max sleep time
-        state.maxFlowSleepDuration = config.getInt(FlowConfig.PROCESSING_MAX_FLOW_SLEEP_DURATION)
-    }
 
     val cpkFileHashes: Set<SecureHash>
         get() = state.cpkFileHashes.map { SecureHashImpl(it.algorithm, it.bytes.array()) }.toSet()
 
-    val retryState: RetryState?
-        get() = state.retryState
-
-    val retryEvent: FlowEvent
-        get() = state.retryState?.failedEvent
-            ?: throw IllegalStateException("Attempt to access null retry state. inRetryState must be tested before accessing retry fields")
-
-    val retryCount: Int
-        get() = state.retryState?.retryCount ?: -1
-
-    val firstFailureTimestamp: Instant?
-        get() = state.retryState?.firstFailureTimestamp
-
-    /**
-     * Update the current pipeline state to set a retry of the current event.
-     */
-    fun retry(event: FlowEvent, exception: Exception) {
-        val timestamp = instantProvider()
-        val retryState = state.retryState ?: RetryState().apply {
-            retryCount = 0
-            failedEvent = event
-            firstFailureTimestamp = timestamp
-        }
-        retryState.retryCount++
-        retryState.error = createAvroExceptionEnvelope(exception)
-        retryState.lastFailureTimestamp = timestamp
-        val maxRetrySleepTime = config.getInt(FlowConfig.PROCESSING_MAX_RETRY_DELAY)
-        val sleepTime = (2.0.pow(retryState.retryCount - 1.toDouble())) * RETRY_INITIAL_DELAY_MS
-        setFlowSleepDuration(min(maxRetrySleepTime, sleepTime.toInt()))
-        state.retryState = retryState
-    }
-
-    fun markRetrySuccess() {
-        state.retryState = null
-    }
-
     fun populateCpkFileHashes(cpkFileHashes: Set<SecureHash>) {
         if (state.cpkFileHashes.isNullOrEmpty()) {
-            state.cpkFileHashes = cpkFileHashes.map { net.corda.data.crypto.SecureHash(it.algorithm, ByteBuffer.wrap(it.bytes)) }
+            state.cpkFileHashes =
+                cpkFileHashes.map { net.corda.data.crypto.SecureHash(it.algorithm, ByteBuffer.wrap(it.bytes)) }
         } else {
             throw IllegalStateException("cpk file hash list ${state.cpkFileHashes} cannot be updated to $cpkFileHashes once set")
         }

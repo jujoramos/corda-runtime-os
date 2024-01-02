@@ -22,15 +22,15 @@ fun <T> buildFlowEventContext(
     outputRecords: List<Record<*, *>> = emptyList(),
     flowId: String = FLOW_ID_1,
     sendToDlq: Boolean = false,
-    isRetryEvent: Boolean = false
 ): FlowEventContext<T> {
 
 
-    val configWithRequired = config.withFallback(SmartConfigImpl.empty()
-        .withValue(FlowConfig.SESSION_FLOW_CLEANUP_TIME, ConfigValueFactory.fromAnyRef(10000))
-        .withValue(FlowConfig.PROCESSING_FLOW_CLEANUP_TIME, ConfigValueFactory.fromAnyRef(10000))
-        .withValue(FlowConfig.EXTERNAL_EVENT_MESSAGE_RESEND_WINDOW, ConfigValueFactory.fromAnyRef(100))
-        .withValue(FlowConfig.SESSION_TIMEOUT_WINDOW, ConfigValueFactory.fromAnyRef(5000))
+    val configWithRequired = config.withFallback(
+        SmartConfigImpl.empty()
+            .withValue(FlowConfig.SESSION_FLOW_CLEANUP_TIME, ConfigValueFactory.fromAnyRef(10000))
+            .withValue(FlowConfig.PROCESSING_FLOW_CLEANUP_TIME, ConfigValueFactory.fromAnyRef(10000))
+            .withValue(FlowConfig.EXTERNAL_EVENT_MESSAGE_RESEND_WINDOW, ConfigValueFactory.fromAnyRef(100))
+            .withValue(FlowConfig.SESSION_TIMEOUT_WINDOW, ConfigValueFactory.fromAnyRef(5000))
     )
 
     return FlowEventContext(
@@ -39,7 +39,6 @@ fun <T> buildFlowEventContext(
         inputEventPayload,
         mapOf(ConfigKeys.FLOW_CONFIG to configWithRequired),
         configWithRequired,
-        isRetryEvent,
         outputRecords,
         sendToDlq,
         emptyMap(),
@@ -55,8 +54,7 @@ fun <T> buildFlowEventContext(
     config: SmartConfig = SmartConfigFactory.createWithoutSecurityServices().create(ConfigFactory.empty()),
     outputRecords: List<Record<*, *>> = emptyList(),
     flowId: String = FLOW_ID_1,
-    sendToDlq: Boolean = false,
-    isRetryEvent: Boolean = false
+    sendToDlq: Boolean = false
 ): FlowEventContext<T> {
     return FlowEventContext(
         mock(),
@@ -64,7 +62,6 @@ fun <T> buildFlowEventContext(
         inputEventPayload,
         emptyMap(),
         config,
-        isRetryEvent,
         outputRecords,
         sendToDlq,
         emptyMap(),

@@ -1,9 +1,7 @@
 package net.corda.flow.pipeline.impl
 
-import net.corda.data.flow.FlowKey
 import net.corda.data.flow.event.mapper.FlowMapperEvent
 import net.corda.data.flow.event.mapper.ScheduleCleanup
-import net.corda.data.flow.output.FlowStatus
 import net.corda.data.flow.state.session.SessionState
 import net.corda.data.flow.state.session.SessionStateType
 import net.corda.flow.external.events.impl.ExternalEventManager
@@ -27,6 +25,7 @@ import net.corda.v5.base.types.MemberX500Name
 import org.osgi.service.component.annotations.Activate
 import org.osgi.service.component.annotations.Component
 import org.osgi.service.component.annotations.Reference
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -46,7 +45,7 @@ class FlowGlobalPostProcessorImpl @Activate constructor(
 ) : FlowGlobalPostProcessor {
 
     private companion object {
-        val log = LoggerFactory.getLogger(this::class.java.enclosingClass)
+        val log: Logger = LoggerFactory.getLogger(this::class.java.enclosingClass)
     }
 
     override fun postProcess(context: FlowEventContext<Any>): FlowEventContext<Any> {
@@ -55,9 +54,8 @@ class FlowGlobalPostProcessorImpl @Activate constructor(
         postProcessPendingPlatformError(context)
 
         val outputRecords = getSessionEvents(context, now) +
-                getFlowMapperSessionCleanupEvents(context, now) +
-                getExternalEvent(context, now) +
-                postProcessRetries(context)
+            getFlowMapperSessionCleanupEvents(context, now) +
+            getExternalEvent(context, now)
 
         context.flowMetrics.flowEventCompleted(context.inputEvent.payload::class.java.name)
         val metadata = getStateMetadata(context)
@@ -114,7 +112,8 @@ class FlowGlobalPostProcessorImpl @Activate constructor(
          * If the counterparty doesn't exist in our network, throw a [FlowPlatformException]
          */
         if (!counterpartyExists) {
-            val msg = "[${context.checkpoint.holdingIdentity.x500Name}] has failed to create a flow with counterparty: " +
+            val msg =
+                "[${context.checkpoint.holdingIdentity.x500Name}] has failed to create a flow with counterparty: " +
                     "[${counterparty}] as the recipient doesn't exist in the network."
             sessionManager.errorSession(sessionState)
             if (doesCheckpointExist) {
@@ -176,34 +175,6 @@ class FlowGlobalPostProcessorImpl @Activate constructor(
                     }
                 }
         }
-    }
-
-    private fun postProcessRetries(context: FlowEventContext<Any>): List<Record<FlowKey, FlowStatus>> {
-        /**
-         * When the flow enters a retry state the flow status is updated to "RETRYING", this
-         * needs to be set back when a retry clears, however we only need to do this if the flow
-         * is still running, if it is now complete the status will have been updated already
-         */
-
-        val checkpoint = context.checkpoint
-
-        // The flow was not in a retry state so nothing to do
-        if (!checkpoint.inRetryState) {
-            return listOf()
-        }
-
-        // If we reach the post-processing step with a retry set we
-        // assume whatever the previous retry was it has now cleared
-        log.debug("The Flow was in a retry state that has now cleared.")
-        checkpoint.markRetrySuccess()
-
-        // If the flow has been completed, no need to update the status
-        if (!checkpoint.doesExist) {
-            return listOf()
-        }
-
-        val status = flowMessageFactory.createFlowStartedStatusMessage(checkpoint)
-        return listOf(flowRecordFactory.createFlowStatusRecord(status))
     }
 
     private fun getStateMetadata(context: FlowEventContext<Any>): Metadata? {
